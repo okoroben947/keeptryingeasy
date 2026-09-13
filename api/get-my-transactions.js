@@ -15,7 +15,6 @@ export default async function handler(req, res) {
 
         const token = authHeader.replace('Bearer ', '');
         
-        // Use your cached admin client to guarantee we bypass the RLS 42501 error
         let supabase;
         try {
             supabase = getSupabaseAdmin();
