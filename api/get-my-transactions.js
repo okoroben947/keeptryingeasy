@@ -32,7 +32,8 @@ export default async function handler(req, res) {
             .from('transactions')
             .select('*')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(50);
 
         if (txError) {
             throw txError;
