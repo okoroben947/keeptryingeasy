@@ -1,3 +1,4 @@
+// Forcing Vercel to update
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 
 export default async function handler(req, res) {
