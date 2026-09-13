@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- ================= REGISTRATION GATE (NEW) =================
+         Runs immediately, before anything else loads.
+         If the visitor has not created an account yet (no flag in
+         localStorage), they are redirected straight to register.html.
+         Once account creation is successful, register.html must run:
+             localStorage.setItem('easyconnect_account_created', 'true');
+         before sending the user back here, so this check passes on
+         future visits and they are not redirected again.
+    ============================================================== -->
+    <script>
+        (function () {
+            try {
+                if (!localStorage.getItem('easyconnect_account_created')) {
+                    window.location.replace('register.html');
+                }
+            } catch (e) {
+                // If localStorage is blocked/unavailable, fail open so the
+                // site doesn't break — visitor simply won't be gated.
+            }
+        })();
+    </script>
+    <!-- ============== END REGISTRATION GATE (NEW) ================ -->
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EasyConnect Group | Digital & AI Solutions</title>
+    
+    <!-- Favicon Placeholder -->
+    <link rel="icon" href="favicon (2).png" type="image/x-icon">
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- AOS Animation CSS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        /* CSS VARIABLES - Industry Standard Colors */
+        :root {
+            --primary: #1E3A8A; /* Deep Tech Blue */
+            --secondary: #F97316; /* Vibrant Orange */
+            --dark: #0F172A;
+            --light: #F8FAFC;
+            --gray: #64748B;
+            --transition: all 0.3s ease;
+            --nav-height: 70px;
+        }
+
+        /* RESET & BASE */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; max-width: 100%; overflow-x: hidden; }
+        body { background-color: var(--light); color: var(--dark); line-height: 1.6; overflow-x: hidden; width: 100%; max-width: 100%; }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        img, video, iframe, table, embed, object { max-width: 100%; height: auto; display: block; }
+        button, input, textarea { font-size: 1rem; }
+        a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+            outline: 2px solid var(--secondary);
+            outline-offset: 2px;
+        }
+        .container { width: 92%; max-width: 1200px; margin: auto; }
+        section { padding: clamp(35px, 5vw, 55px) 0; }
+        .section-title { text-align: center; margin-bottom: 30px; font-size: clamp(1.75rem, 4.5vw, 2.5rem); color: var(--primary); }
+
+        /* NAVBAR */
+        nav { position: fixed; top: 0; width: 100%; background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; padding: 12px 0; transition: var(--transition); }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .logo { font-size: 1.3rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .logo img { height: clamp(42px, 6vw, 70px); width: auto; }
+        .nav-links { display: flex; gap: clamp(12px, 1.6vw, 25px); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .nav-links li a { font-weight: 600; transition: var(--transition); white-space: nowrap; }
+        .nav-links li a:hover { color: var(--secondary); }
+        .btn-subscribe { background: var(--secondary); color: #fff !important; padding: 10px 20px; border-radius: 5px; font-weight: 600; }
+        .btn-subscribe:hover { background: #ea580c; }
+        .btn-book-nav { background: var(--primary); color: #fff !important; padding: 10px 20px; border-radius: 5px; font-weight: 600; }
+        .btn-book-nav:hover { background: var(--secondary); }
+        
+        /* HAMBURGER MENU */
+        .hamburger { display: none; cursor: pointer; font-size: 1.8rem; color: var(--primary); background: none; border: none; padding: 5px; flex-shrink: 0; }
+
+        /* HERO SECTION */
+        .hero {
+            position: relative;
+            min-height: calc(100vh - var(--nav-height));
+            min-height: calc(100dvh - var(--nav-height));
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+            text-align: center;
+            margin-top: var(--nav-height);
+            padding: 50px 0;
+            background: var(--dark); /* fallback while video loads / if it fails */
+        }
+        .hero-video {
+            position: absolute;
+            top: 50%; left: 50%;
+            min-width: 100%; min-height: 100%;
+            width: auto; height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            z-index: 0;
+        }
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(rgba(30, 58, 138, 0.5), rgba(30, 58, 138, 0.5));
+            z-index: 1;
+        }
+        .hero .container { position: relative; z-index: 2; }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-video { display: none; }
+            .hero { background: linear-gradient(rgba(30,58,138,0.9), rgba(30,58,138,0.9)), var(--dark) center/cover; }
+        }
+        .hero h1 { font-size: clamp(2rem, 6vw, 3.5rem); margin-bottom: 20px; line-height: 1.2; word-wrap: break-word; text-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+        .hero p { font-size: clamp(1rem, 2.2vw, 1.2rem); margin-bottom: 30px; text-shadow: 0 1px 8px rgba(0,0,0,0.5); }
+        .btn-primary { background: var(--secondary); color: #fff; padding: 15px 30px; border-radius: 5px; font-weight: 700; font-size: 1.1rem; display: inline-block; transition: var(--transition); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(249, 115, 22, 0.3); }
+        .btn-secondary-hero { background: transparent; color: #fff; border: 2px solid #fff; padding: 13px 28px; border-radius: 5px; font-weight: 700; font-size: 1.1rem; display: inline-block; transition: var(--transition); }
+        .btn-secondary-hero:hover { background: #fff; color: var(--primary); transform: translateY(-3px); }
+        .hero-cta-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+
+        /* SERVICES GRID */
+        .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 20px; }
+        .service-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; transition: var(--transition); border-bottom: 4px solid transparent; }
+        .service-card:hover { transform: translateY(-10px); border-bottom: 4px solid var(--secondary); }
+        .service-card i { font-size: 2.5rem; color: var(--primary); margin-bottom: 15px; }
+        .service-card h3 { font-size: 1.05rem; word-wrap: break-word; }
+
+        /* PORTFOLIO (WORKS DONE) - infinite scrolling marquee */
+        #portfolio { background: #fff; }
+        .portfolio-marquee {
+            overflow: hidden;
+            width: 100%;
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 40px, #000 calc(100% - 40px), transparent 100%);
+        }
+        .portfolio-track {
+            display: flex;
+            gap: 30px;
+            width: max-content;
+            animation: portfolio-scroll 32s linear infinite;
+        }
+        .portfolio-marquee:hover .portfolio-track { animation-play-state: paused; }
+        @keyframes portfolio-scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        .portfolio-item {
+            position: relative; overflow: hidden; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            flex: 0 0 auto;
+            width: min(300px, 78vw);
+        }
+        .portfolio-item img { width: 100%; display: block; transition: var(--transition); aspect-ratio: 4 / 3; object-fit: cover; }
+        .portfolio-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30, 58, 138, 0.85); color: #fff;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
+            opacity: 0; transition: var(--transition);
+        }
+        .portfolio-item:hover img { transform: scale(1.1); }
+        .portfolio-item:hover .portfolio-overlay { opacity: 1; }
+
+        /* Touch devices (phones/tablets) can't hover - show captions without a tap */
+        @media (hover: none), (pointer: coarse) {
+            .portfolio-overlay {
+                opacity: 1;
+                background: linear-gradient(to top, rgba(15,23,42,0.92) 0%, rgba(30,58,138,0.55) 55%, rgba(30,58,138,0) 100%);
+                justify-content: flex-end;
+                align-items: flex-start;
+                text-align: left;
+                padding: 16px;
+            }
+            .portfolio-item:hover img { transform: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .portfolio-track { animation: none; }
+            .portfolio-marquee { overflow-x: auto; }
+        }
+
+        /* OUR PLATFORMS */
+        #platforms { background: var(--light); }
+        .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 30px; }
+        .platform-card { background: #fff; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; transition: var(--transition); border-top: 4px solid var(--secondary); }
+        .platform-card:hover { transform: translateY(-8px); box-shadow: 0 15px 25px rgba(0,0,0,0.1); }
+        .platform-card-body { padding: 30px; }
+        .platform-card-body .platform-eyebrow { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--secondary); }
+        .platform-card-body h3 { margin: 10px 0 12px; font-size: 1.4rem; word-wrap: break-word; }
+        .platform-card-body h3 a { color: var(--primary); transition: var(--transition); }
+        .platform-card-body h3 a:hover { color: var(--secondary); }
+        .platform-card-body p { color: var(--gray); margin-bottom: 20px; font-size: 0.98rem; }
+        .platform-visit { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #fff; background: var(--primary); padding: 10px 20px; border-radius: 5px; font-size: 0.92rem; transition: var(--transition); flex-wrap: wrap; }
+        .platform-visit:hover { background: var(--secondary); }
+
+        /* TESTIMONIALS SLIDER */
+        .testimonial-slider-container { position: relative; max-width: 800px; margin: auto; overflow: hidden; min-height: 220px; }
+        .testimonial-slide { display: none; width: 100%; animation: fadeEffect 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .testimonial-slide.active { display: block; }
+        .testimonial-card { background: #fff; padding: 40px 25px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.04); font-style: italic; position: relative; z-index: 1; text-align: center; margin: 10px; }
+        .testimonial-card::before { content: "\f10d"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 3rem; color: rgba(30, 58, 138, 0.05); z-index: -1; }
+        .testimonial-card p { word-wrap: break-word; }
+        .author { margin-top: 20px; font-weight: 700; color: var(--primary); font-style: normal; }
+        
+        /* Smooth Fade Animation */
+        @keyframes fadeEffect {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dots Navigation */
+        .slider-dots { text-align: center; margin-top: 25px; }
+        .dot { display: inline-block; width: 12px; height: 12px; margin: 0 6px; background-color: #cbd5e1; border-radius: 50%; cursor: pointer; transition: var(--transition); }
+        .dot.active { background-color: var(--secondary); transform: scale(1.2); }
+        @media (hover: hover) { .dot:hover { background-color: var(--primary); } }
+
+        /* FAQs */
+        #faq { background: #fff; }
+        .faq-item { background: var(--light); margin-bottom: 15px; border-radius: 5px; overflow: hidden; }
+        .faq-question { padding: 18px 20px; width: 100%; text-align: left; background: none; border: none; font-size: 1.05rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--dark); }
+        .faq-question i { flex-shrink: 0; transition: var(--transition); }
+        .faq-answer { padding: 0 20px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .faq-answer p { padding-bottom: 20px; color: var(--gray); }
+        .faq-item.active .faq-answer { max-height: 300px; }
+        .faq-item.active .faq-question i { transform: rotate(180deg); }
+
+        /* CONTACT & NEWSLETTER (FORMSUBMIT) */
+        .contact-container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .contact-info { background: var(--primary); color: #fff; padding: clamp(25px, 4vw, 40px); border-radius: 8px; }
+        .contact-info h3 { margin-bottom: 20px; font-size: 1.6rem; }
+        .contact-info p { margin-bottom: 15px; display: flex; align-items: center; gap: 15px; font-size: 1.05rem; word-break: break-word; }
+        .contact-info p i { flex-shrink: 0; }
+        form { display: flex; flex-direction: column; gap: 15px; }
+        input, textarea { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        .newsletter-form { flex-direction: row; flex-wrap: wrap; }
+        .newsletter-form input[type="email"] { flex: 1 1 200px; }
+        .newsletter-form button { flex: 0 0 auto; }
+        button[type="submit"] { background: var(--secondary); color: #fff; border: none; padding: 15px; cursor: pointer; font-size: 1.1rem; font-weight: 700; border-radius: 5px; transition: var(--transition); }
+        button[type="submit"]:hover { background: #ea580c; }
+        .msg-form { background: #fff; padding: clamp(25px, 4vw, 40px); border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+        /* FOOTER */
+        footer { background: var(--dark); color: #fff; padding: 60px 0 20px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-grid h4 { color: var(--secondary); margin-bottom: 20px; font-size: 1.2rem; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a:hover { color: var(--secondary); }
+        .social-icons { display: flex; flex-wrap: wrap; gap: 15px; }
+        .social-icons a { color: #fff; font-size: 1.5rem; transition: var(--transition); }
+        .social-icons a:hover { color: var(--secondary); transform: translateY(-3px); display: inline-block; }
+        .footer-bottom { text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--gray); font-size: 0.9rem; }
+
+        /* FLOATING ICONS */
+        .whatsapp-float {
+            position: fixed; bottom: max(80px, env(safe-area-inset-bottom) + 80px); right: max(20px, env(safe-area-inset-right) + 20px);
+            background: #25D366; color: #fff; width: 55px; height: 55px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 1.8rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: var(--transition);
+        }
+        .whatsapp-float:hover { transform: scale(1.1); color: #fff; }
+        
+        #scrollTop {
+            position: fixed; bottom: max(20px, env(safe-area-inset-bottom) + 20px); right: max(20px, env(safe-area-inset-right) + 20px);
+            background: var(--primary); color: #fff; width: 46px; height: 46px; border: none; border-radius: 50%;
+            font-size: 1.3rem; cursor: pointer; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: var(--transition);
+        }
+        #scrollTop:hover { background: var(--secondary); }
+
+        /* Terms Modal */
+        #termsModal { padding: 20px; }
+        #termsModal > div { max-height: 85vh; overflow-y: auto; width: 100%; }
+
+        /* Ensure the page is locked until they click accept */
+        body.modal-open { overflow: hidden; }
+
+        /* RESPONSIVE DESIGN */
+
+        /* Tablets and below: switch to hamburger before items get cramped */
+        @media (max-width: 900px) {
+  .nav-links {
+    position: fixed; 
+    top: var(--nav-height); 
+    left: auto;
+    right: -100%; 
+    background: #fff; 
+    
+    /* ADD THIS: Ensures the layout engine knows it's a flex container */
+    display: flex; 
+    flex-direction: column; 
+    
+    /* ADD THIS: Forces the menu to sit above all other page content */
+    z-index: 1000; 
+
+    width: 100%;
+    text-align: center; 
+    padding: 20px 0; 
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+    max-height: calc(100vh - var(--nav-height)); 
+    max-height: calc(100dvh - var(--nav-height));
+    overflow-y: auto; 
+    gap: 5px;
+    transition: right 0.3s ease-in-out;
+  }
+
+  .nav-links li { width: 100%; padding: 8px 0; }
+  
+  /* ADD THIS: Forces link text to be dark so it's visible on the #fff background */
+  .nav-links li a {
+    color: #333; /* Adjust to match your theme */
+    display: block; /* Makes the entire row clickable */
+  }
+  
+  .nav-links.active { right: 0; }
+  
+  .hamburger { display: block; cursor: pointer; }
+  .contact-container { grid-template-columns: 1fr; }
+}
+.hamburger span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  margin: 5px auto;
+  background-color: #333; /* Adjust to match your theme */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Transform top bar */
+.hamburger.active span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+/* Hide middle bar */
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+
+/* Transform bottom bar */
+.hamburger.active span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+        @media (max-width: 640px) {
+            .contact-info p { font-size: 1rem; }
+            .newsletter-form { flex-direction: column; }
+            .newsletter-form input[type="email"], .newsletter-form button { flex: 1 1 auto; width: 100%; }
+            .hero-cta-group { flex-direction: column; align-items: stretch; }
+            .btn-secondary-hero { margin-left: 0; }
+        }
+
+        @media (max-width: 480px) {
+            .container { width: 94%; }
+            .service-card { padding: 18px 12px; }
+            .service-card i { font-size: 2rem; }
+            .whatsapp-float { width: 48px; height: 48px; font-size: 1.5rem; bottom: max(75px, env(safe-area-inset-bottom) + 75px); }
+            #scrollTop { width: 42px; height: 42px; font-size: 1.1rem; }
+        }
+       .dante-launcher {
+      right: 90px !important;
+      background-color: #25D366 !important;
+    }
+    @media (max-width: 768px) {
+      .dante-launcher {
+        right: 70px !important;
+      }
+    }
+  
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container nav-container">
+            <a href="#home" class="logo">
+                <img src="logo.png" alt="EasyConnect Logo"> Easyconnect Group
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="home.html#home">Home</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="pricing.html">Pricing</a></li>
+                
+                
+                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="booking.html" class="btn-book-nav">Book a Session</a></li>
+                <li><a href="home.html#subscribe" class="btn-subscribe">Subscribe</a></li>
+                <li><a href="profile.html" aria-label="My Profile" title="My Profile" style="font-size: 1.4rem; color: var(--primary); display: inline-flex; align-items: center;"><i class="fas fa-user-circle"></i> Profile</a></li>
+            </ul>
+            <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="hero" id="home">
+        <video class="hero-video" autoplay muted loop playsinline preload="auto" poster="">
+            <source src="hero-bg.mp4" type="video/mp4">
+        </video>
+        <div class="hero-overlay"></div>
+        <div class="container" data-aos="fade-up" data-aos-duration="1000">
+            <h1>Automate & Elevate Your Digital Experience</h1>
+            <p>From custom AI chatbots and workflow automation to instant NIN, CAC, and VTU services, EasyConnect Group brings your everyday digital needs and advanced business solutions under one roof — fast, reliable, and built to scale with you.</p>
+            <div class="hero-cta-group">
+                <a href="services.html" class="btn-primary">Explore Our Services</a>
+                <a href="booking.html" class="btn-secondary-hero">Book a Consultation</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ABOUT US -->
+    <section id="about">
+        <div class="container" data-aos="fade-up">
+            <h2 class="section-title">About EasyConnect Group</h2>
+            <p style="text-align: center; max-width: 800px; margin: auto; font-size: 1.1rem; color: var(--gray);">
+                With over a decade of industry expertise, EasyConnect Group bridges the gap between everyday digital needs and advanced technological solutions. We specialize in robust virtual top-ups, official documentation retrieval, and cutting-edge AI Automation designed to streamline your business workflows.
+            </p>
+        </div>
+    </section>
+    <div style="display: flex; justify-content: center;">
+  <a href="about.html" class="btn-primary">Learn More --></a>
+</div>
+
+    <!-- SERVICES -->
+    <section id="services" style="background: var(--light);">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">All Our Services</h2>
+            <div class="services-grid">
+                <!-- Services Cards -->
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="100"><i class="fas fa-id-card"></i><h3>ALL NIN SERVICES</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="200"><i class="fas fa-building"></i><h3>ALL CAC SERVICES</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="300"><i class="fas fa-brain"></i><h3>AI INTEGRATION</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="400"><i class="fas fa-project-diagram"></i><h3>AI WORKFLOW</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="500"><i class="fas fa-users-cog"></i><h3>AI WORKFORCE</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="100"><i class="fas fa-robot"></i><h3>AI AUTOMATION</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="200"><i class="fas fa-user-astronaut"></i><h3>AI AGENT</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="300"><i class="fas fa-comments"></i><h3>AI CHATBOT</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="400"><i class="fas fa-graduation-cap"></i><h3>WAEC, NECO & JAMB PINS</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="500"><i class="fas fa-mobile-alt"></i><h3>AIRTIME & DATA</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="100"><i class="fas fa-tv"></i><h3>CABLE SUBSCRIPTION</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="200"><i class="fas fa-bolt"></i><h3>ELECTRICITY BILLS</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="300"><i class="fas fa-certificate"></i><h3>WAEC CERT RETRIEVAL</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="400"><i class="fas fa-file-signature"></i><h3>AFFIDAVIT (ALL KINDS)</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="500"><i class="fas fa-map-marker-alt"></i><h3>LGA ORIGIN CERTIFICATE</h3></div>
+                <div class="service-card" data-aos="zoom-in" data-aos-delay="600"><i class="fas fa-plus-circle"></i><h3>OTHER DIGITAL SERVICES</h3></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PORTFOLIO -->
+    <section id="portfolio">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Real Works Done</h2>
+        </div>
+        <div class="portfolio-marquee">
+            <div class="portfolio-track">
+
+                <!-- Work 1 -->
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80" alt="VTU Dashboard" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">FinTech & APIs</span>
+                        <h3>Custom VTU Dashboard</h3>
+                        <p>Fully automated transaction portal</p>
+                    </div>
+                </div>
+
+                <!-- Work 2 -->
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80" alt="AI Chatbot Integration" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">AI Chatbot Agent</span>
+                        <h3>Customer Support AI</h3>
+                        <p>24/7 intelligent routing & response</p>
+                    </div>
+                </div>
+
+                <!-- Work 3 -->
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" alt="Corporate Registration" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">Workflow Automation</span>
+                        <h3>CAC Registration Portal</h3>
+                        <p>End-to-end automated documentation</p>
+                    </div>
+                </div>
+
+                <!-- Work 4 -->
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80" alt="Budget Management App" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">Full-Stack Web App</span>
+                        <h3>Smart Budget Tracker</h3>
+                        <p>Real-time personal finance management</p>
+                    </div>
+                </div>
+
+                <!-- Work 5 -->
+                <div class="portfolio-item">
+                    <img src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=600&q=80" alt="Retail Storefront" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">E-Commerce & Retail</span>
+                        <h3>Automated Fashion Store</h3>
+                        <p>Digital storefront with inventory sync</p>
+                    </div>
+                </div>
+
+                <!-- Work 6 -->
+                <div class="portfolio-item">
+                    <img src="nin-image.png" alt="Identity Verification System" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">NIN & Data Services</span>
+                        <h3>Identity Verification System</h3>
+                        <p>Secure biometric data processing</p>
+                    </div>
+                </div>
+
+                <!-- Duplicate set (aria-hidden, purely for the seamless loop) -->
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">FinTech & APIs</span>
+                        <h3>Custom VTU Dashboard</h3>
+                        <p>Fully automated transaction portal</p>
+                    </div>
+                </div>
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">AI Chatbot Agent</span>
+                        <h3>Customer Support AI</h3>
+                        <p>24/7 intelligent routing & response</p>
+                    </div>
+                </div>
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=80" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">Workflow Automation</span>
+                        <h3>CAC Registration Portal</h3>
+                        <p>End-to-end automated documentation</p>
+                    </div>
+                </div>
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=600&q=80" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">Full-Stack Web App</span>
+                        <h3>Smart Budget Tracker</h3>
+                        <p>Real-time personal finance management</p>
+                    </div>
+                </div>
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=600&q=80" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">E-Commerce & Retail</span>
+                        <h3>Automated Fashion Store</h3>
+                        <p>Digital storefront with inventory sync</p>
+                    </div>
+                </div>
+                <div class="portfolio-item" aria-hidden="true">
+                    <img src="nin-image.png" alt="" loading="lazy">
+                    <div class="portfolio-overlay">
+                        <span class="work-type">NIN & Data Services</span>
+                        <h3>Identity Verification System</h3>
+                        <p>Secure biometric data processing</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- OUR PLATFORMS -->
+    <section id="platforms">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Our Platforms</h2>
+            <p style="text-align: center; max-width: 700px; margin: -20px auto 50px; font-size: 1.05rem; color: var(--gray);">
+                Beyond this site, EasyConnect Group operates three dedicated platforms — explore them directly below.
+            </p>
+            <div class="platform-grid">
+
+                <div class="platform-card" data-aos="fade-up">
+                    <div class="platform-card-body">
+                        <span class="platform-eyebrow">Consulting & Automation</span>
+                        <h3><a href="https://e-verify-consultancy.vercel.app/" target="_blank" rel="noopener">E-Verify Consultancy</a></h3>
+                        <p>Our premium consulting arm — CAC registration, NIN & affidavits, graphics & web design, and AI automation through our partner agency.</p>
+                        <a href="https://e-verify-consultancy.vercel.app/" target="_blank" rel="noopener" class="platform-visit">Visit Platform <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="platform-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="platform-card-body">
+                        <span class="platform-eyebrow">AI Agents & Automation</span>
+                        <h3><a href="https://easy-ai-agency.vercel.app/" target="_blank" rel="noopener">Easy-AI Agency</a></h3>
+                        <p>Our dedicated AI division — custom chatbots, workflow automation, AI agents, AI workforce, and AI integration built around your business.</p>
+                        <a href="https://easy-ai-agency.vercel.app/" target="_blank" rel="noopener" class="platform-visit">Visit Platform <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="platform-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="platform-card-body">
+                        <span class="platform-eyebrow">VTU & Bill Payments</span>
+                        <h3><a href="https://sabuss.com/eazyconet6/" target="_blank" rel="noopener">EasyConnect Telecom</a></h3>
+                        <p>Instant airtime, mobile data, cable TV subscriptions, and electricity bill payments — our dedicated VTU portal, trusted by 200,000+ users.</p>
+                        <a href="https://sabuss.com/eazyconet6/" target="_blank" rel="noopener" class="platform-visit">Visit Platform <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS SLIDER -->
+    <section id="testimonials" style="background: var(--light);">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Client Testimonials</h2>
+            
+            <div class="testimonial-slider-container" data-aos="fade-up">
+                <!-- Slide 1 -->
+                <div class="testimonial-slide active">
+                    <div class="testimonial-card">
+                        <p>"EasyConnect revolutionized our customer service with their custom AI Chatbot integration. Fast, reliable, and incredibly professional."</p>
+                        <div class="author">- Sarah Jenkins, TechCorp</div>
+                    </div>
+                </div>
+                <!-- Slide 2 -->
+                <div class="testimonial-slide">
+                    <div class="testimonial-card">
+                        <p>"Getting my CAC registration and WAEC retrieval sorted was seamless. Their automated platform saves so much time! Highly recommended."</p>
+                        <div class="author">- Emeka U., Entrepreneur</div>
+                    </div>
+                </div>
+                <!-- Slide 3 -->
+                <div class="testimonial-slide">
+                    <div class="testimonial-card">
+                        <p>"The virtual top-up (VTU) service is lightning fast. I never have to worry about delayed data or airtime ever again."</p>
+                        <div class="author">- Aisha Mohammed, Student</div>
+                    </div>
+                </div>
+                <!-- Slide 4 -->
+                <div class="testimonial-slide">
+                    <div class="testimonial-card">
+                        <p>"They built a complete AI Workflow for our HR department that cut our onboarding time in half. True tech visionaries."</p>
+                        <div class="author">- David O., HR Manager</div>
+                    </div>
+                </div>
+                <!-- Slide 5 -->
+                <div class="testimonial-slide">
+                    <div class="testimonial-card">
+                        <p>"I needed an Affidavit and an LGA Origin Certificate urgently. The process was entirely digital, stress-free, and delivered instantly."</p>
+                        <div class="author">- Linda K., Consultant</div>
+                    </div>
+                </div>
+                <!-- Slide 6 -->
+                <div class="testimonial-slide">
+                    <div class="testimonial-card">
+                        <p>"Integrating their API for electricity and cable bill payments into our app was a breeze. Excellent documentation and support."</p>
+                        <div class="author">- Felix A., App Developer</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slider Navigation Dots -->
+            <div class="slider-dots" data-aos="fade-up">
+                <span class="dot active" onclick="currentSlide(0)"></span>
+                <span class="dot" onclick="currentSlide(1)"></span>
+                <span class="dot" onclick="currentSlide(2)"></span>
+                <span class="dot" onclick="currentSlide(3)"></span>
+                <span class="dot" onclick="currentSlide(4)"></span>
+                <span class="dot" onclick="currentSlide(5)"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQs -->
+    <section id="faq">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">FAQs</h2>
+            <div class="faq-container" style="max-width: 800px; margin: auto;">
+                <div class="faq-item" data-aos="fade-up">
+                    <button class="faq-question">How fast is the CAC registration process? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Our digital pipeline accelerates the standard process, meaning your application is submitted and tracked immediately upon document upload.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="100">
+                    <button class="faq-question">Can you build custom AI agents for my specific business? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Yes! We map out your workflows and build tailored AI agents using industry-standard platforms to automate your specific tasks.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="200">
+                    <button class="faq-question">Are VTU and utility payments instant? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Absolutely. Our API integrations ensure airtime, data, and electricity bill payments reflect in real-time.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="300">
+                    <button class="faq-question">How do I retrieve my WAEC, NECO, or JAMB result/PIN? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Simply submit your details through our platform and our team processes the retrieval or PIN generation digitally, with delivery straight to your email or dashboard.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="400">
+                    <button class="faq-question">Is my personal and business data secure with EasyConnect? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Yes. We follow strict data protection practices across all our services, including encrypted transactions and secure biometric handling for identity-related requests.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="500">
+                    <button class="faq-question">Do you offer support if I have an issue after a transaction? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Yes, our support team is reachable via WhatsApp, phone, or the contact form on this page, and we resolve most issues within 24 hours.</p></div>
+                </div>
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="600">
+                    <button class="faq-question">Can I automate a recurring workflow, like weekly reports or customer follow-ups? <i class="fas fa-chevron-down"></i></button>
+                    <div class="faq-answer"><p>Definitely. We design AI workflows and agents tailored to recurring tasks, so things like reports, reminders, and follow-ups run automatically on your schedule.</p></div>
+                </div>
+                <p style="text-align: center;">...have other questions to ask?, reach us through the contact form on this page!...</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT & NEWSLETTER -->
+    <section id="contact" style="background: var(--light);">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Get In Touch</h2>
+            <div class="contact-container">
+                <div class="contact-info" data-aos="fade-right">
+                    <h3>Contact Information</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 2 Chief Fatai Aremu Cl, Apapa, Lagos</p>
+                    <p><i class="fas fa-envelope"></i> eazyconnect34@gmail.com</p>
+                    <p><i class="fab fa-whatsapp"></i> +234 704 213 1467</p>
+                    <p><i class="fas fa-phone-alt"></i> +234 813 435 3424</p>
+                    
+                    <h3 style="margin-top: 40px; margin-bottom: 20px;" id="subscribe">Subscribe to Newsletter</h3>
+                    <!-- FormSubmit Newsletter -->
+                    <form action="https://formsubmit.co/eazyconnect34@gmail.com" method="POST" class="newsletter-form">
+                        <input type="hidden" name="_subject" value="New Newsletter Subscription!">
+                        <input type="hidden" name="_captcha" value="false">
+                        <input type="email" name="email" placeholder="Enter your email address" required style="border:none; padding:15px; border-radius:5px;">
+                        <button type="submit" style="background:#fff; color:var(--primary);">Subscribe Now</button>
+                    </form>
+                </div>
+                
+                <!-- FormSubmit Contact Form -->
+                <div data-aos="fade-left">
+                    <form action="https://hook.eu1.make.com/8te5ewd7acqqqqtng0xbl7dck6gss091" method="POST" class="msg-form">
+                        <h3 style="margin-bottom: 20px; color: var(--primary);">Send us a Message</h3>
+                        <!-- <input type="hidden" name="_subject" value="New Contact Form Submission!"> -->
+    <!-- <input type="hidden" name="_next" value="https://yourwebsite.com/thanks.html"> -->
+                        <input type="text" name="name" placeholder="Your Name" required>
+                        <input type="email" name="email" placeholder="Your Email" required>
+                        <input type="text" name="phone" placeholder="Phone Number">
+                        <textarea name="message" rows="5" placeholder="How can we help you?" required></textarea>
+                        <!-- Add this inside your <form> tag, right before the <button type="submit"> -->
+<div style="margin-bottom: 20px; font-size: 0.9rem; display: flex; align-items: flex-start; gap: 8px;">
+    <input type="checkbox" id="terms" name="terms" required style="width: auto; margin-top: 3px; flex-shrink: 0;">
+    <label for="terms">I agree to the <a href="terms.html" target="_blank" style="color:var(--primary); text-decoration:underline;">Terms & Conditions</a> and <a href="privacy.html" target="_blank" style="color:var(--primary); text-decoration:underline;">Privacy Policy</a></label>
+</div>
+                        <button type="submit">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <h4>EasyConnect Group</h4>
+                    <p style="color: var(--gray);">Automating the future, integrating digital services seamlessly for individuals and businesses.</p>
+                </div>
+                <div>
+                    <h4>Useful Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="services.html">Our Services</a></li>
+                        <li><a href="pricing.html">Pricing</a></li>
+                        <li><a href="#portfolio">Works Done</a></li>
+                        <li><a href="#platforms">Our Platforms</a></li>
+                        <li><a href="booking.html">Book a Consultation</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="#faq">FAQs</a></li>
+                    </ul>
+                    <a href="register.html" class="btn-subscribe">Get Started</a>
+                </div>
+                <div>
+                    <h4>Connect With Us</h4>
+                    <div class="social-icons">
+                        <a href="https://www.facebook.com/profile.php?id=61566488271536" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://x.com/OkoroBen11" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.instagram.com/easyconet/" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/in/okoroben08/" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026-2030 - EasyConnect Group. All Rights Reserved.</p>
+                <p style="color: #ffffff; font-weight: 700;"><i>Powered by:</i>  Innovation</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FLOATING WHATSAPP -->
+    <a href="https://wa.me/2347042131467" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- SCROLL TO TOP -->
+    <button id="scrollTop" onclick="window.scrollTo(0,0)" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- SCRIPTS -->
+    <!-- AOS Animation Library JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Initialize Animations
+        AOS.init({
+            once: true,
+            offset: 100,
+            disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        });
+
+        // Hamburger Menu Toggle
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+        
+        hamburger.addEventListener('click', () => {
+            const isOpen = navLinks.classList.toggle('active');
+            hamburger.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        // Close mobile menu on link click
+        document.querySelectorAll('.nav-links li a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+                hamburger.setAttribute('aria-expanded', 'false');
+            });
+        });
+        
+hamburger.addEventListener('click', () => {
+  // Toggles the 'active' class on both elements
+  hamburger.classList.toggle('active');
+  navLinks.classList.toggle('active');
+});
+
+// 1. Existing code: Toggles menu when clicking the hamburger icon
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  navLinks.classList.toggle('active');
+});
+
+// 2. NEW CODE: Select all links inside the navigation menu
+const menuItems = document.querySelectorAll('.nav-links li a');
+
+// 3. NEW CODE: Loop through each link and add a click event
+menuItems.forEach(item => {
+  item.addEventListener('click', () => {
+    // Remove the 'active' class to close the menu and reset the "X"
+    hamburger.classList.remove('active');
+    navLinks.classList.remove('active');
+  });
+});
+
+        // FAQ Accordion
+        const faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            question.addEventListener('click', () => {
+                // Close other open items
+                faqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                    }
+                });
+                // Toggle current item
+                item.classList.toggle('active');
+            });
+        });
+
+        // Scroll to Top Button Visibility
+        const scrollTopBtn = document.getElementById('scrollTop');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                scrollTopBtn.style.display = 'block';
+            } else {
+                scrollTopBtn.style.display = 'none';
+            }
+        });
+
+        // 5. Automated Testimonial Slider
+        let slideIndex = 0;
+        let slideInterval;
+        const slides = document.querySelectorAll(".testimonial-slide");
+        const dots = document.querySelectorAll(".dot");
+
+        function showSlides(n) {
+            // Hide all slides and deactivate all dots
+            slides.forEach(slide => slide.classList.remove("active"));
+            dots.forEach(dot => dot.classList.remove("active"));
+            
+            // Loop back to start if at the end, or go to end if going backwards
+            slideIndex = n;
+            if (slideIndex >= slides.length) { slideIndex = 0; }
+            if (slideIndex < 0) { slideIndex = slides.length - 1; }
+            
+            // Show active slide and dot
+            slides[slideIndex].classList.add("active");
+            dots[slideIndex].classList.add("active");
+        }
+
+        function nextSlide() {
+            showSlides(slideIndex + 1);
+        }
+
+        // Allow user to click dots manually
+        function currentSlide(n) {
+            showSlides(n);
+            resetInterval(); // Restart the timer if user clicks manually
+        }
+
+        function resetInterval() {
+            clearInterval(slideInterval);
+            slideInterval = setInterval(nextSlide, 5000); // Changes every 5 seconds (5000ms)
+        }
+
+        // Start the automatic slider
+        if (slides.length > 0) {
+            resetInterval();
+        }
+
+        // Function to handle acceptance
+        function acceptTerms() {
+            const modal = document.getElementById('termsModal');
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+
+        // Function to handle rejection – redirects directly to the goodbye page
+function rejectTerms() {
+    window.location.href = 'goodbye.html';
+}
+        
+
+        // Lock the page immediately (before full page load) until Accept is clicked.
+        // No localStorage bypass — the modal shows on every visit.
+        document.body.classList.add('modal-open');
+        
+    </script>
+<!-- Modal Structure -->
+<div id="termsModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center;">
+        <h2 style="color: var(--primary);">Welcome to EasyConnect</h2>
+        <p style="margin: 20px 0;">By continuing to use this site, you acknowledge and agree to our <a href="terms.html" target="_blank">Terms & Conditions</a> and <a href="privacy.html" target="_blank">Privacy Policy</a>.</p>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button onclick="acceptTerms()" style="background: var(--secondary); color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold;">I Accept & Continue</button>
+            <button onclick="rejectTerms()" style="background: #fff; color: var(--dark); border: 1px solid #cbd5e1; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold;">Reject & Exit</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.dante-ai.com/embed.js" data-agent-id="2b2d3f8f-943f-48da-a3d9-5cfd8132820b" data-widget-key="wk_ic-XMT21da6PK2nfBmNlUDBHcUWlVdA2" crossorigin="anonymous" async></script>
+</body>
+</html>

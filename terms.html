@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Terms and Conditions | EasyConnect Group</title>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Shared Base Styles */
+        :root { --primary: #1E3A8A; --secondary: #F97316; --dark: #0F172A; --light: #F8FAFC; --gray: #64748B; --transition: all 0.3s ease; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        html { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+        body { background-color: var(--light); color: var(--dark); line-height: 1.8; width: 100%; max-width: 100%; overflow-x: hidden; }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        img, video, iframe, table, embed, object { max-width: 100%; height: auto; }
+        .container { width: 90%; max-width: 1200px; margin: auto; }
+        
+        /* Navbar */
+        nav { position: fixed; top: 0; width: 100%; background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.08); z-index: 1000; padding: 10px 0; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: nowrap; }
+        .logo { display: flex; align-items: center; gap: 8px; font-size: clamp(0.8rem, 3.2vw, 1.1rem); font-weight: 700; color: var(--primary); flex-shrink: 1; min-width: 0; }
+        .logo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logo img { height: clamp(34px, 6vw, 80px); width: auto; flex-shrink: 0; }
+        .nav-links { display: flex; gap: clamp(8px, 2.5vw, 25px); align-items: center; flex-shrink: 0; }
+        .nav-links li a { font-weight: 600; transition: var(--transition); white-space: nowrap; font-size: clamp(0.75rem, 2.8vw, 1rem); }
+        .nav-links li a:hover { color: var(--secondary); }
+        .btn-subscribe { background: var(--secondary); color: #fff !important; padding: 10px 20px; border-radius: 5px; }
+
+        /* Legal Content Section */
+        .legal-header { background: var(--primary); color: #fff; padding: clamp(90px, 18vw, 120px) 0 clamp(40px, 6vw, 60px); text-align: center; }
+        .legal-header h1 { font-size: clamp(1.75rem, 6vw, 2.5rem); margin-bottom: 10px; word-wrap: break-word; }
+        .legal-header p { font-size: clamp(0.9rem, 2.5vw, 1rem); color: rgba(255,255,255,0.85); }
+        .legal-content { background: #fff; padding: clamp(24px, 5vw, 60px); border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.04); margin: clamp(-25px, -4vw, -40px) auto 80px; position: relative; z-index: 10; max-width: 900px; width: 94%; }
+        .legal-content h3 { color: var(--primary); margin: 30px 0 15px; font-size: clamp(1.1rem, 3.5vw, 1.4rem); border-bottom: 2px solid var(--light); padding-bottom: 10px; }
+        .legal-content p, .legal-content li { margin-bottom: 15px; color: #334155; overflow-wrap: break-word; word-break: break-word; }
+        .legal-content ul { padding-left: 20px; list-style-type: disc; margin-bottom: 20px; }
+
+        /* Footer */
+        footer { background: var(--dark); color: #fff; padding: 70px 0 20px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 40px; margin-bottom: 50px; }
+        .footer-grid h4 { color: var(--secondary); margin-bottom: 25px; font-size: 1.2rem; }
+        .footer-links li { margin-bottom: 12px; }
+        .social-icons a { color: #fff; font-size: 1.5rem; margin-right: 15px; }
+        .footer-bottom { text-align: center; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--gray); font-size: 0.9rem; }
+
+        @media (max-width: 400px) {
+            .logo span { display: none; }
+        }
+        @media (max-width: 900px) {
+  .nav-links {
+    position: fixed; 
+    top: var(--nav-height); 
+    left: auto;
+    right: -100%; 
+    background: #fff; 
+    
+    /* ADD THIS: Ensures the layout engine knows it's a flex container */
+    display: flex; 
+    flex-direction: column; 
+    
+    /* ADD THIS: Forces the menu to sit above all other page content */
+    z-index: 1000; 
+
+    width: 100%;
+    text-align: center; 
+    padding: 20px 0; 
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+    max-height: calc(100vh - var(--nav-height)); 
+    max-height: calc(100dvh - var(--nav-height));
+    overflow-y: auto; 
+    gap: 5px;
+    transition: right 0.3s ease-in-out;
+  }
+
+  .nav-links li { width: 100%; padding: 8px 0; }
+  
+  /* ADD THIS: Forces link text to be dark so it's visible on the #fff background */
+  .nav-links li a {
+    color: #333; /* Adjust to match your theme */
+    display: block; /* Makes the entire row clickable */
+  }
+  
+  .nav-links.active { right: 0; }
+  
+  .hamburger { display: block; cursor: pointer; }
+  .contact-container { grid-template-columns: 1fr; }
+}
+.hamburger span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  margin: 5px auto;
+  background-color: #333; /* Adjust to match your theme */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Transform top bar */
+.hamburger.active span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+/* Hide middle bar */
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+
+/* Transform bottom bar */
+.hamburger.active span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="logo.png" alt="EasyConnect Logo">Easyconnect Group
+            </a>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="pricing.html">Pricing</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="booking.html" class="btn-book-nav">Book a Session</a></li>
+                <li><a href="home.html" class="btn-subscribe">Subscribe</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="legal-header">
+        <div class="container">
+            <h1>Terms and Conditions</h1>
+            <p>Last Updated: September 2, 2026</p>
+        </div>
+    </header>
+
+    <section class="container">
+        <div class="legal-content">
+            <h3>1. Acceptance of Terms</h3>
+            <p>By accessing or using the EasyConnect Group website and services, you agree to be bound by these Terms and Conditions. If you disagree with any part of these terms, you must discontinue the use of our services immediately.</p>
+
+            <h3>2. Description of Services</h3>
+            <p>EasyConnect Group provides digital services including, but not limited to, AI Integration, workflow automation, NIN/CAC documentation retrieval, and virtual top-up (VTU) services. We act as a facilitator; however, official processing times are subject to the policies of relevant government bodies (NIMC, CAC, etc.).</p>
+
+            <h3>3. User Responsibilities</h3>
+            <p>You agree to provide accurate, current, and complete information during registration and transaction processes. You are solely responsible for the security of your account credentials and for all activities that occur under your account.</p>
+
+            <h3>4. Payments & Refunds</h3>
+            <p>All payments for digital services, airtime, and subscriptions are non-refundable once the transaction has been initiated or processed. We ensure that our API integrations deliver value in real-time. In the event of a technical failure on our end, please contact us within 24 hours for a resolution.</p>
+
+            <h3>5. AI & Automation Services</h3>
+            <p>Our AI agents and workflow automations are provided "as-is." While we strive for peak performance, EasyConnect Group is not liable for errors, downtime, or data discrepancies arising from third-party platform updates (e.g., updates to Make, Zapier, or n8n).</p>
+
+            <h3>6. Limitation of Liability</h3>
+            <p>To the maximum extent permitted by Nigerian law, EasyConnect Group shall not be liable for any indirect, incidental, or consequential damages resulting from your use of our services.</p>
+
+            <h3>7. Termination</h3>
+            <p>We reserve the right to suspend or terminate your access to our services at our sole discretion, without notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties.</p>
+
+            <h3>8. Governing Law</h3>
+            <p>These terms shall be governed by and construed in accordance with the laws of the Federal Republic of Nigeria, and any disputes shall be subject to the exclusive jurisdiction of the courts in Lagos State.</p>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <h4>EasyConnect Group</h4>
+                    <p style="color: var(--gray);">Automating the future, integrating digital services seamlessly for individuals and businesses.</p>
+                </div>
+                <div>
+                    <h4>Useful Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="services.html">Our Services</a></li>
+                        <li><a href="pricing.html">Pricing</a></li>
+                        <li><a href="home.html#works">Works Done</a></li>
+                        <li><a href="home.html#platforms">Our Platforms</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="home.html">FAQs</a></li>
+                    </ul>
+                    <a href="register.html" class="btn-subscribe">Get Started</a>
+                </div>
+                <div>
+                    <h4>Connect With Us</h4>
+                    <div class="social-icons">
+                        <a href="https://www.facebook.com/profile.php?id=61566488271536"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://x.com/OkoroBen11"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.instagram.com/easyconet/"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/in/okoroben08/"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026-2030 - EasyConnect Group. All Rights Reserved.</p>
+                <p><i>Powered by:</i>  Innovation</p>
+            </div>
+        </div>
+    </footer>
+    <script>
+        AOS.init({ once: true, offset: 80, disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+        hamburger.addEventListener('click', () => {
+            const isOpen = navLinks.classList.toggle('active');
+            hamburger.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        document.querySelectorAll('.nav-links li a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+                hamburger.setAttribute('aria-expanded', 'false');
+            });
+        });
+        
+// 1. Existing code: Toggles menu when clicking the hamburger icon
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  navLinks.classList.toggle('active');
+});
+
+// 2. NEW CODE: Select all links inside the navigation menu
+const menuItems = document.querySelectorAll('.nav-links li a');
+
+// 3. NEW CODE: Loop through each link and add a click event
+menuItems.forEach(item => {
+  item.addEventListener('click', () => {
+    // Remove the 'active' class to close the menu and reset the "X"
+    hamburger.classList.remove('active');
+    navLinks.classList.remove('active');
+  });
+});
+
+        const scrollTopBtn = document.getElementById('scrollTop');
+        const footerEl = document.querySelector('footer');
+        if (footerEl && scrollTopBtn) {
+            const footerObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => scrollTopBtn.classList.toggle('visible', entry.isIntersecting));
+            }, { threshold: 0.05 });
+            footerObserver.observe(footerEl);
+        }
+    </script>
+
+    <script src="https://www.dante-ai.com/embed.js" data-agent-id="2b2d3f8f-943f-48da-a3d9-5cfd8132820b" data-widget-key="wk_ic-XMT21da6PK2nfBmNlUDBHcUWlVdA2" crossorigin="anonymous" async></script>
+</body>
+</html>

@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en" class="min-h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="dark light">
+    <title>EasyConnect - Client Profile & Transactions</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    
+    <style>
+        /* Tell mobile browsers (Android/Samsung "auto dark", iOS smart invert, etc.) that this
+           page already handles its own dark theme. Without this, some mobile browsers forcibly
+           re-theme content and form fields -- injecting a light/white background while the
+           page's own light text color stays as-is, which can make text and data invisible
+           (light text on a light box the browser added on top of our dark background). */
+        html {
+            color-scheme: dark;
+        }
+
+        input, select, textarea, button {
+            color-scheme: dark;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input, select, textarea {
+            background-color: #020617 !important;
+            color: #ffffff !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #64748b !important;
+            opacity: 1;
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #020617 inset !important;
+            box-shadow: 0 0 0px 1000px #020617 inset !important;
+            caret-color: #ffffff;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* iOS Safari auto-zooms the whole page on focus if an input's font-size is under 16px,
+           which is what makes layouts look "overlapping"/broken on mobile once the keyboard
+           opens. Forcing 16px on small screens stops the zoom. */
+        @media (max-width: 640px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Smooth touch scrolling for mobile devices */
+        body {
+            -webkit-overflow-scrolling: touch;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #0f172a 25%, #1e293b 37%, #0f172a 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+
+        .tab-btn[aria-selected="true"] {
+            color: #ffffff;
+            border-bottom-color: #6366f1;
+        }
+        .tab-panel[hidden] { display: none; }
+
+        .whatsapp-float {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom) + 20px);
+            right: max(20px, env(safe-area-inset-right) + 20px);
+            background: #25D366;
+            color: #fff;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            z-index: 999;
+            transition: transform 0.2s ease;
+        }
+        .whatsapp-float:hover { transform: scale(1.08); }
+        .whatsapp-float svg { width: 28px; height: 28px; }
+
+        /* ===== Dashboard additions (sidebar, wallet, referral, quick links) =====
+           These are new sections only. The existing Profile Info / Security / Payment
+           History cards keep their original dark styling untouched. */
+        .db-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
+        .db-sidebar { background: #0f172a; border-right: 1px solid #1e293b; }
+        .db-chip { background: #1e293b; border-radius: 9999px; }
+        .db-text { color: #f1f5f9; }
+        .db-muted { color: #94a3b8; }
+
+        html.light-theme .db-card { background: #ffffff !important; border-color: #e2e8f0 !important; }
+        html.light-theme .db-sidebar { background: #ffffff !important; border-color: #e2e8f0 !important; }
+        html.light-theme .db-chip { background: #f1f5f9 !important; }
+        html.light-theme .db-text { color: #0f172a !important; }
+        html.light-theme .db-muted { color: #64748b !important; }
+        html.light-theme body { background-color: #f1f5f9 !important; }
+
+        #sidebar { transition: transform 0.25s ease; }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; left: 0; height: 100dvh; width: 17rem; transform: translateX(-100%); z-index: 50; }
+            #sidebar.open { transform: translateX(0); }
+        }
+
+        .nav-link { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: background-color .15s ease; }
+        .nav-link:hover { background: #1e293b; }
+        html.light-theme .nav-link:hover { background: #f1f5f9 !important; }
+
+        .service-card { text-decoration: none; }
+        .service-card:hover { border-color: #6366f1 !important; box-shadow: 0 4px 14px rgba(99,102,241,0.15); }
+    </style>
+
+    <script>
+      const SUPABASE_URL = 'https://fhophxqeoeowhgqlihzq.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_moji8A_nvf8TRP1NsGKlyg_jlup6r6d';
+
+      // Public keys are safe to expose in frontend code -- never put your
+      // SECRET key (sk_...) anywhere in this file.
+      const PAYSTACK_PUBLIC_KEY = 'pk_live_089c5b9e145ecc8e93ee2329b0079bf1a13c220d';
+
+      // Safe lazy initializer to ensure CDN library loads cleanly
+      function getSupabase() {
+          if (window.supabaseClient && window.supabaseClient.auth) {
+              return window.supabaseClient;
+          }
+          const lib = window.supabase;
+          if (lib && typeof lib.createClient === 'function') {
+              window.supabaseClient = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+              return window.supabaseClient;
+          }
+          return null;
+      }
+    </script>
+</head>
+<body class="min-h-dvh bg-slate-950 text-slate-100 overflow-y-auto">
+
+    <div class="min-h-dvh flex">
+
+        <!-- Sidebar overlay (mobile only) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden" onclick="closeSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="db-sidebar flex flex-col w-64 shrink-0 p-5 gap-1">
+            <div class="flex items-center gap-3 pb-5 mb-3" style="border-bottom:1px solid #1e293b;">
+                <img src="logo.png" alt="EasyConnect Logo" class="h-10 w-10 object-contain rounded-lg bg-slate-800/80 p-1.5 border border-slate-700" onerror="this.src='https://placehold.co/40x40/1e293b/white?text=EC'">
+                <span class="db-text font-bold text-sm leading-tight">Easyconnect<br>Group</span>
+                <button type="button" onclick="closeSidebar()" aria-label="Close menu" class="ml-auto md:hidden db-muted hover:text-white text-xl leading-none cursor-pointer">&times;</button>
+            </div>
+
+            <nav class="flex flex-col gap-1 flex-1 overflow-y-auto">
+                <a href="#dashboard-top" onclick="closeSidebar()" class="nav-link bg-indigo-600/15 text-indigo-300">
+                    <span aria-hidden="true">🏠</span> Home Dashboard
+                </a>
+                <a href="services.html" class="nav-link db-muted">
+                    <span aria-hidden="true">🧩</span> All Services
+                </a>
+                <a href="pricing.html" class="nav-link db-muted">
+                    <span aria-hidden="true">📕</span> International Passport
+                </a>
+                <a href="#wallet-section" onclick="closeSidebar()" class="nav-link db-muted">
+                    <span aria-hidden="true">💼</span> Wallet & Transactions
+                </a>
+                <a href="#referral-section" onclick="closeSidebar()" class="nav-link db-muted">
+                    <span aria-hidden="true">🎁</span> Referrals & Earnings
+                </a>
+                <a href="#notifications-section" onclick="closeSidebar()" class="nav-link db-muted">
+                    <span aria-hidden="true">🔔</span> Notifications
+                </a>
+                <a href="javascript:void(0)" onclick="switchTab('info'); document.getElementById('tab-panel-info').scrollIntoView({behavior:'smooth'}); closeSidebar();" class="nav-link db-muted">
+                    <span aria-hidden="true">⚙️</span> Profile Settings
+                </a>
+                <a href="javascript:void(0)" onclick="logout()" class="nav-link text-rose-400 mt-auto">
+                    <span aria-hidden="true">↩️</span> Logout
+                </a>
+            </nav>
+
+            <button type="button" onclick="toggleTheme()" id="theme-toggle-btn" class="db-chip db-text text-xs font-semibold rounded-xl py-2.5 mt-3 flex items-center justify-center gap-2 cursor-pointer">
+                <span id="theme-icon" aria-hidden="true">🌙</span> <span id="theme-label">Dark</span>
+            </button>
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex-1 min-w-0">
+            <div class="max-w-3xl w-full mx-auto p-4 sm:p-6 py-6 sm:py-10 space-y-5 sm:space-y-6" id="dashboard-top">
+
+                <!-- Mobile top bar -->
+                <div class="flex items-center justify-between md:hidden">
+                    <button type="button" onclick="openSidebar()" aria-label="Open menu" class="db-card p-2 db-text cursor-pointer">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-5 w-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/>
+                        </svg>
+                    </button>
+                    <span class="db-text font-bold text-sm">Dashboard</span>
+                    <span class="w-9"></span>
+                </div>
+
+                <!-- Top bar: back link -->
+        <div class="flex items-center justify-between">
+            <a href="home.html" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition">
+                <span aria-hidden="true">&larr;</span> Back to Home
+            </a>
+            <button onclick="logout()" class="cursor-pointer text-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-4 py-2 rounded-xl text-xs font-semibold transition active:scale-[0.98]">
+                Logout
+            </button>
+        </div>
+
+        <!-- Wallet Balance -->
+        <div id="wallet-section" class="rounded-2xl shadow-xl p-5 sm:p-6 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #4f46e5, #7c3aed 55%, #db2777);">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-white/70">Wallet Balance</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span id="wallet-balance-amount" class="text-2xl sm:text-3xl font-extrabold">₦0.00</span>
+                        <button type="button" onclick="toggleWalletVisibility()" aria-label="Toggle balance visibility" class="cursor-pointer text-white/70 hover:text-white">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-white/70 mt-2">Virtual Account: <span id="wallet-account-number" class="font-semibold text-white">Not yet assigned</span> <span id="wallet-account-provider"></span></p>
+                </div>
+                <button type="button" onclick="openFundWalletModal()" class="cursor-pointer shrink-0 bg-white text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-white/90 transition whitespace-nowrap">
+                    + Fund Wallet
+                </button>
+            </div>
+            <div class="flex items-center justify-between mt-4 pt-3 border-t border-white/15 text-[10px] text-white/70">
+                <span>Updated: <span id="wallet-updated">—</span></span>
+                <span class="font-semibold">NGN Wallet</span>
+            </div>
+        </div>
+
+        <!-- Referrals & Earnings -->
+        <div id="referral-section" class="space-y-3">
+            <div class="rounded-2xl shadow-xl p-5 sm:p-6 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #db2777, #7c3aed);">
+                <span class="inline-block text-[9px] font-bold uppercase tracking-wider bg-white/20 px-2 py-1 rounded-full">Cash Bonuses</span>
+                <h3 class="text-base sm:text-lg font-extrabold mt-2">Invite Friends & Get Commission!</h3>
+                <p class="text-xs text-white/80 mt-1">Share your link below and track your earnings instantly.</p>
+            </div>
+
+            <div class="db-card p-3.5 sm:p-4 flex items-center gap-3">
+                <span class="db-chip h-9 w-9 flex items-center justify-center shrink-0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-indigo-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757M10.81 15.312a4.5 4.5 0 01-1.242-7.244l4.5-4.5a4.5 4.5 0 016.364 6.364l-1.757 1.757"/>
+                    </svg>
+                </span>
+                <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-semibold db-muted uppercase tracking-wider">Your Referral Link</p>
+                    <p id="referral-link-text" class="text-xs db-text font-mono truncate">Loading...</p>
+                </div>
+                <button type="button" id="referral-copy-btn" onclick="copyReferralLink()" class="cursor-pointer shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3.5 py-2 rounded-lg transition">
+                    Copy
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Links & Services -->
+        <div id="services-section">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="db-text font-bold text-xs sm:text-sm uppercase tracking-wider">Quick Links & Services</h2>
+                <a href="pricing.html" class="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">View All &rsaquo;</a>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">🪪</span>
+                    <span class="db-text text-xs font-semibold">Verify NIN</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">💳</span>
+                    <span class="db-text text-xs font-semibold">Verify BVN</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-rose-500/15 text-base">🎯</span>
+                    <span class="db-text text-xs font-semibold">Personalization</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">✅</span>
+                    <span class="db-text text-xs font-semibold">NIN Validation</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">🤖</span>
+                    <span class="db-text text-xs font-semibold">IPE Clearance</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">✏️</span>
+                    <span class="db-text text-xs font-semibold">NIN Modifications</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🗂️</span>
+                    <span class="db-text text-xs font-semibold">Enrollment</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">☀️</span>
+                    <span class="db-text text-xs font-semibold">Birth Attestation</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">💠</span>
+                    <span class="db-text text-xs font-semibold">Tax ID (TIN)</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
+                    <span class="db-text text-xs font-semibold">CAC Registration</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-purple-500/15 text-base">©️</span>
+                    <span class="db-text text-xs font-semibold">Copyright</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">®️</span>
+                    <span class="db-text text-xs font-semibold">Trademark</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">⚡</span>
+                    <span class="db-text text-xs font-semibold">SCUML Fast</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-teal-500/15 text-base">🌍</span>
+                    <span class="db-text text-xs font-semibold">Export License</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">📕</span>
+                    <span class="db-text text-xs font-semibold">International Passport</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">State of Origin</span>
+                </a>
+                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">📚</span>
+                    <span class="db-text text-xs font-semibold">All Services</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div id="notifications-section" class="db-card shadow-xl p-5 sm:p-6">
+            <h2 class="db-text font-bold text-xs sm:text-sm uppercase tracking-wider mb-3">Notifications</h2>
+            <div class="flex items-center gap-3">
+                <span class="db-chip h-9 w-9 flex items-center justify-center shrink-0 text-base">🔔</span>
+                <p class="db-muted text-xs">You're all caught up — no new notifications.</p>
+            </div>
+        </div>
+
+        <!-- Identity Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 sm:p-8">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="relative shrink-0">
+                        <div id="avatar-circle" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl font-bold overflow-hidden">
+                            <img id="avatar-image" src="" alt="Profile picture" class="h-full w-full object-cover hidden">
+                            <span id="avatar-initials">&nbsp;</span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('avatar-file-input').click()" aria-label="Change profile picture" title="Change profile picture" class="cursor-pointer absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-slate-800 border-2 border-slate-900 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5 sm:h-4 sm:w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17a1 1 0 001 1h3.5L18 8.5a1.5 1.5 0 000-2.121l-.379-.38a1.5 1.5 0 00-2.121 0L5 15.5z"/>
+                            </svg>
+                        </button>
+                        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="handleAvatarChange(event)">
+                    </div>
+                    <div class="min-w-0">
+                        <h1 id="header-user-name" class="text-base sm:text-lg font-bold text-white tracking-tight truncate">Loading profile...</h1>
+                        <p id="header-user-email" class="text-xs text-slate-400 truncate">&nbsp;</p>
+                        <p id="avatar-status" class="text-[10px] mt-1 hidden"></p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center shrink-0 text-center">
+                    <img src="logo.png" alt="EasyConnect Logo" class="h-16 w-16 sm:h-20 sm:w-20 object-contain rounded-xl bg-slate-800/80 p-2 border border-slate-700" onerror="this.src='https://placehold.co/80x80/1e293b/white?text=EC'">
+                    <span class="text-[9px] sm:text-[10px] font-bold text-white mt-1 tracking-wide whitespace-nowrap">Easyconnect Group</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+            <div role="tablist" class="flex border-b border-slate-800 px-2">
+                <button role="tab" id="tab-btn-info" aria-selected="true" aria-controls="tab-panel-info" onclick="switchTab('info')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
+                    Profile Info
+                </button>
+                <button role="tab" id="tab-btn-security" aria-selected="false" aria-controls="tab-panel-security" onclick="switchTab('security')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
+                    Security
+                </button>
+                <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-panel-history" onclick="switchTab('history')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
+                    Payment History
+                </button>
+            </div>
+
+            <!-- Profile Info Panel -->
+            <div id="tab-panel-info" role="tabpanel" aria-labelledby="tab-btn-info" class="tab-panel p-5 sm:p-8 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Personal details</h2>
+                    <button type="button" id="edit-toggle-btn" onclick="enterEditMode()" class="cursor-pointer text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
+                        Edit
+                    </button>
+                </div>
+
+                <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-3.5 sm:space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">First Name</label>
+                            <input type="text" id="edit-firstname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Last Name</label>
+                            <input type="text" id="edit-lastname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Phone Number</label>
+                        <input type="tel" id="edit-phone" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+                        <input type="email" id="edit-email" disabled class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500">
+                        <p class="text-[10px] text-slate-500 mt-1">Contact support to change the email on your account.</p>
+                    </div>
+
+                    <p id="profile-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
+                    <p id="profile-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Profile updated.</p>
+
+                    <div id="profile-form-actions" class="hidden flex-col sm:flex-row gap-3 pt-1">
+                        <button type="submit" id="profile-save-btn" class="cursor-pointer flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                            Save Changes
+                        </button>
+                        <button type="button" onclick="cancelEditMode()" class="cursor-pointer flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Security Panel -->
+            <div id="tab-panel-security" role="tabpanel" aria-labelledby="tab-btn-security" class="tab-panel p-5 sm:p-8 space-y-4" hidden>
+                <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Change password</h2>
+                <form id="password-form" onsubmit="changePassword(event)" class="space-y-3.5 sm:space-y-4 max-w-sm">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">New Password</label>
+                        <input type="password" id="new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Confirm New Password</label>
+                        <input type="password" id="confirm-new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <p id="password-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
+                    <p id="password-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Password updated.</p>
+
+                    <button type="submit" id="password-save-btn" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                        Update Password
+                    </button>
+                </form>
+            </div>
+
+            <!-- Payment History Panel -->
+            <div id="tab-panel-history" role="tabpanel" aria-labelledby="tab-btn-history" class="tab-panel p-5 sm:p-8 space-y-3" hidden>
+                <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Your payment history</h2>
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-900/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold whitespace-nowrap">
+                                    <th class="p-3 sm:p-3.5">Reference</th>
+                                    <th class="p-3 sm:p-3.5">Amount</th>
+                                    <th class="p-3 sm:p-3.5">Status</th>
+                                    <th class="p-3 sm:p-3.5">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-tx-body" class="divide-y divide-slate-800/60">
+                                <tr><td colspan="4" class="p-6 text-center text-slate-500">Loading your transactions...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fund Wallet Modal -->
+    <div id="fund-wallet-modal" class="fixed inset-0 bg-black/70 z-[60] hidden flex items-center justify-center p-4">
+        <div class="db-card w-full max-w-sm p-5 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="db-text font-bold text-sm">Fund Wallet</h3>
+                <button type="button" onclick="closeFundWalletModal()" aria-label="Close" class="db-muted hover:text-white text-xl leading-none cursor-pointer">&times;</button>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Amount (₦)</label>
+                <input type="number" id="fund-wallet-amount" min="100" step="50" placeholder="e.g. 1000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+            <p id="fund-wallet-error" class="text-xs text-rose-400 hidden font-medium"></p>
+            <button type="button" id="fund-wallet-pay-btn" onclick="submitFundWallet()" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                Continue to Pay
+            </button>
+            <p class="text-[10px] db-muted text-center">Secured by Paystack</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let profileSourceTable = false; // whether a matching row exists in the "profiles" table
+
+        // ---------- Sidebar (mobile) ----------
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebar-overlay').classList.remove('hidden');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.add('hidden');
+        }
+
+        // ---------- Theme toggle (scoped to sidebar/wallet/referral/quick-links) ----------
+        function applyTheme(theme) {
+            const isLight = theme === 'light';
+            document.documentElement.classList.toggle('light-theme', isLight);
+            const icon = document.getElementById('theme-icon');
+            const label = document.getElementById('theme-label');
+            if (icon) icon.innerText = isLight ? '☀️' : '🌙';
+            if (label) label.innerText = isLight ? 'Light' : 'Dark';
+        }
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.contains('light-theme');
+            const next = isLight ? 'dark' : 'light';
+            try { localStorage.setItem('easyconnect_theme', next); } catch (e) {}
+            applyTheme(next);
+        }
+        (function initThemeFromStorage() {
+            let saved = 'dark';
+            try { saved = localStorage.getItem('easyconnect_theme') || 'dark'; } catch (e) {}
+            applyTheme(saved);
+        })();
+
+        // ---------- Wallet balance ----------
+        let walletBalanceVisible = true;
+        let walletBalanceValue = 0;
+        function renderWalletBalance() {
+            const el = document.getElementById('wallet-balance-amount');
+            if (!el) return;
+            el.innerText = walletBalanceVisible
+                ? `₦${walletBalanceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                : '₦••••••';
+        }
+        function toggleWalletVisibility() {
+            walletBalanceVisible = !walletBalanceVisible;
+            renderWalletBalance();
+        }
+        async function loadWallet(client, user) {
+            // Best-effort: reads from a "wallets" table if your project has one.
+            // If it doesn't exist yet (or the row isn't there), the card just shows defaults.
+            let needsVirtualAccount = false;
+            try {
+                const { data: wallet } = await client
+                    .from('wallets')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (wallet) {
+                    walletBalanceValue = Number(wallet.balance) || 0;
+                    const accEl = document.getElementById('wallet-account-number');
+                    const provEl = document.getElementById('wallet-account-provider');
+                    const updEl = document.getElementById('wallet-updated');
+                    if (accEl) accEl.innerText = wallet.virtual_account_number || 'Not yet assigned';
+                    if (provEl) provEl.innerText = wallet.virtual_account_provider ? `(${wallet.virtual_account_provider})` : '';
+                    if (updEl) updEl.innerText = wallet.updated_at ? new Date(wallet.updated_at).toLocaleString() : '—';
+                    needsVirtualAccount = !wallet.virtual_account_number;
+                } else {
+                    needsVirtualAccount = true;
+                }
+            } catch (err) {
+                console.log('Wallet notice: no wallet record found yet.', err);
+                needsVirtualAccount = true;
+            }
+            renderWalletBalance();
+
+            if (needsVirtualAccount) {
+                requestVirtualAccount(client);
+            }
+        }
+
+        // Automatically asks the backend to generate a Dedicated Virtual
+        // Account for this customer if they don't have one yet. Safe to call
+        // on every page load -- the backend returns the existing account
+        // instead of creating a duplicate if one's already on file, and this
+        // function only gets called at all when loadWallet() detects none
+        // exists yet.
+        async function requestVirtualAccount(client) {
+            try {
+                const { data: { session } } = await client.auth.getSession();
+                if (!session) return;
+
+                const res = await fetch('/api/create-virtual-account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${session.access_token}`
+                    }
+                });
+                const result = await res.json();
+
+                if (result && result.status && result.account_number) {
+                    const accEl = document.getElementById('wallet-account-number');
+                    const provEl = document.getElementById('wallet-account-provider');
+                    if (accEl) accEl.innerText = result.account_number;
+                    if (provEl) provEl.innerText = result.bank ? `(${result.bank})` : '';
+                } else {
+                    console.log('Virtual account notice:', result && result.message);
+                }
+            } catch (err) {
+                console.log('Virtual account request failed:', err);
+            }
+        }
+
+        // ---------- Fund Wallet (Paystack) ----------
+        function openFundWalletModal() {
+            document.getElementById('fund-wallet-error').classList.add('hidden');
+            document.getElementById('fund-wallet-amount').value = '';
+            document.getElementById('fund-wallet-modal').classList.remove('hidden');
+        }
+        function closeFundWalletModal() {
+            document.getElementById('fund-wallet-modal').classList.add('hidden');
+        }
+
+        function submitFundWallet() {
+            const errEl = document.getElementById('fund-wallet-error');
+            errEl.classList.add('hidden');
+
+            const amountInput = document.getElementById('fund-wallet-amount');
+            const amount = Number(amountInput.value);
+
+            if (!amount || amount < 100) {
+                errEl.innerText = 'Enter an amount of at least ₦100.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!currentUser) {
+                errEl.innerText = 'Please wait for your profile to finish loading and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (typeof PaystackPop === 'undefined') {
+                errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const payBtn = document.getElementById('fund-wallet-pay-btn');
+            payBtn.disabled = true;
+            payBtn.innerText = 'Opening Paystack...';
+
+            const reference = `wallet_${currentUser.id}_${Date.now()}`;
+
+            const handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: currentUser.email,
+                amount: Math.round(amount * 100), // Paystack expects kobo
+                ref: reference,
+                metadata: { user_id: currentUser.id },
+                callback: function (response) {
+                    // Payment was successful in the browser -- now verify it
+                    // server-side and update the wallet.
+                    verifyPaymentOnBackend(response.reference);
+                },
+                onClose: function () {
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Continue to Pay';
+                }
+            });
+
+            handler.openIframe();
+        }
+
+        // Called from Paystack's callback once a payment succeeds in the browser.
+        // This does NOT update the wallet balance directly from the client --
+        // that would mean any customer could open dev tools and credit their
+        // own wallet with any amount they want. Instead it asks our backend
+        // (which re-verifies the payment directly with Paystack, then credits
+        // the wallet using a service-role key Row Level Security can't be
+        // bypassed by) to do the actual crediting, then just reloads the
+        // wallet display with whatever the backend confirms.
+        async function verifyPaymentOnBackend(reference) {
+            const errEl = document.getElementById('fund-wallet-error');
+            const payBtn = document.getElementById('fund-wallet-pay-btn');
+            const client = getSupabase();
+            let sessionToken = '';
+            if (client) {
+                const { data: { session } } = await client.auth.getSession();
+                if (session) {
+                    sessionToken = session.access_token;
+                }
+            }
+
+            fetch('/api/verify-wallet-funding', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {})
+                },
+                body: JSON.stringify({ reference })
+            })
+                .then((res) => res.json())
+                .then((result) => {
+                    closeFundWalletModal();
+                    if (client && currentUser) {
+                        loadWallet(client, currentUser);
+                    }
+                    if (!result || !result.status) {
+                        errEl.innerText = 'Payment received, but confirming it is taking longer than usual. Your wallet will update shortly.';
+                        errEl.classList.remove('hidden');
+                        document.getElementById('fund-wallet-modal').classList.remove('hidden');
+                    }
+                })
+                .catch(() => {
+                    errEl.innerText = 'Payment received, but we could not reach our server to confirm it. Your wallet will update shortly once it retries.';
+                    errEl.classList.remove('hidden');
+                })
+                .finally(() => {
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Continue to Pay';
+                });
+        }
+
+        // ---------- Referral link ----------
+        function setupReferralLink(user) {
+            const link = `${window.location.origin}/register.html?ref=${user.id}`;
+            const el = document.getElementById('referral-link-text');
+            if (el) el.innerText = link;
+            window.__referralLink = link;
+        }
+        function copyReferralLink() {
+            const link = window.__referralLink;
+            if (!link) return;
+            navigator.clipboard.writeText(link).then(() => {
+                const btn = document.getElementById('referral-copy-btn');
+                if (!btn) return;
+                const original = btn.innerText;
+                btn.innerText = 'Copied!';
+                setTimeout(() => { btn.innerText = original; }, 1500);
+            }).catch(() => {
+                const el = document.getElementById('referral-link-text');
+                if (el) {
+                    const range = document.createRange();
+                    range.selectNode(el);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                }
+            });
+        }
+
+        function switchTab(name) {
+            const tabs = ['info', 'security', 'history'];
+            tabs.forEach(t => {
+                document.getElementById(`tab-panel-${t}`).hidden = (t !== name);
+                document.getElementById(`tab-btn-${t}`).setAttribute('aria-selected', t === name ? 'true' : 'false');
+            });
+        }
+
+        function enterEditMode() {
+            ['edit-firstname', 'edit-lastname', 'edit-phone'].forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            document.getElementById('profile-form-actions').classList.remove('hidden');
+            document.getElementById('profile-form-actions').classList.add('flex');
+            document.getElementById('edit-toggle-btn').classList.add('hidden');
+            document.getElementById('edit-firstname').focus();
+        }
+
+        function cancelEditMode() {
+            populateProfileFields(currentUser);
+            ['edit-firstname', 'edit-lastname', 'edit-phone'].forEach(id => {
+                document.getElementById(id).disabled = true;
+            });
+            document.getElementById('profile-form-actions').classList.add('hidden');
+            document.getElementById('profile-form-actions').classList.remove('flex');
+            document.getElementById('edit-toggle-btn').classList.remove('hidden');
+            document.getElementById('profile-error').classList.add('hidden');
+            document.getElementById('profile-success').classList.add('hidden');
+        }
+
+        function getInitials(firstName, lastName, email) {
+            const f = (firstName || '').trim();
+            const l = (lastName || '').trim();
+            if (f || l) {
+                return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase() || '?';
+            }
+            return (email || '?').charAt(0).toUpperCase();
+        }
+
+        function setAvatarImage(url) {
+            const img = document.getElementById('avatar-image');
+            const initials = document.getElementById('avatar-initials');
+            if (url) {
+                img.src = url;
+                img.classList.remove('hidden');
+                initials.classList.add('hidden');
+            } else {
+                img.classList.add('hidden');
+                img.removeAttribute('src');
+                initials.classList.remove('hidden');
+            }
+        }
+
+        function populateProfileFields(user) {
+            if (!user) return;
+            const metadata = user.user_metadata || {};
+            const firstName = metadata.first_name || '';
+            const lastName = metadata.last_name || '';
+            const phone = metadata.phone || user.phone || '';
+            const email = user.email || '';
+
+            document.getElementById('edit-firstname').value = firstName;
+            document.getElementById('edit-lastname').value = lastName;
+            document.getElementById('edit-phone').value = phone;
+            document.getElementById('edit-email').value = email;
+
+            const fullName = `${firstName} ${lastName}`.trim() || 'Valued Client';
+            document.getElementById('header-user-name').innerText = fullName;
+            document.getElementById('header-user-email').innerText = email || 'N/A';
+            document.getElementById('avatar-initials').innerText = getInitials(firstName, lastName, email);
+            setAvatarImage(metadata.avatar_url || null);
+        }
+
+        async function handleAvatarChange(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('avatar-status');
+            const showStatus = (text, tone) => {
+                statusEl.innerText = text;
+                statusEl.className = `text-[10px] mt-1 ${tone}`;
+            };
+
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showStatus('Please choose a PNG, JPG, or WEBP image.', 'text-rose-400');
+                event.target.value = '';
+                return;
+            }
+            if (file.size > 3 * 1024 * 1024) {
+                showStatus('Image must be smaller than 3MB.', 'text-rose-400');
+                event.target.value = '';
+                return;
+            }
+
+            // Show the picked image immediately, before the upload finishes.
+            const localPreviewUrl = URL.createObjectURL(file);
+            setAvatarImage(localPreviewUrl);
+            showStatus('Uploading...', 'text-slate-500');
+
+            const client = getSupabase();
+            if (!client || !currentUser) {
+                showStatus('Could not upload right now. Please try again.', 'text-rose-400');
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+                const path = `${currentUser.id}/avatar.${ext}`;
+
+                const { error: uploadError } = await client.storage
+                    .from('avatars')
+                    .upload(path, file, { upsert: true, cacheControl: '3600' });
+
+                if (uploadError) throw uploadError;
+
+                const { data: publicUrlData } = client.storage.from('avatars').getPublicUrl(path);
+                const publicUrl = publicUrlData && publicUrlData.publicUrl
+                    ? `${publicUrlData.publicUrl}?t=${Date.now()}`
+                    : null;
+
+                if (!publicUrl) throw new Error('Could not get the uploaded image URL.');
+
+                const { data, error: updateError } = await client.auth.updateUser({
+                    data: { avatar_url: publicUrl }
+                });
+                if (updateError) throw updateError;
+
+                currentUser = data.user || currentUser;
+                currentUser.user_metadata = { ...(currentUser.user_metadata || {}), avatar_url: publicUrl };
+                setAvatarImage(publicUrl);
+                showStatus('Profile picture updated.', 'text-emerald-400');
+
+            } catch (err) {
+                console.log('Avatar upload notice:', err);
+                setAvatarImage((currentUser.user_metadata || {}).avatar_url || null);
+                showStatus(err.message || 'Could not upload your photo. Please try again.', 'text-rose-400');
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        async function initProfile() {
+            const client = getSupabase();
+            if (!client) {
+                console.error("Supabase client failed to initialize.");
+                return;
+            }
+
+            const { data: { session }, error } = await client.auth.getSession();
+            if (!session || error) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = session.user;
+            const userEmail = currentUser.email || '';
+            const metadata = currentUser.user_metadata || {};
+
+            let firstName = metadata.first_name || '';
+            let lastName = metadata.last_name || '';
+            let phone = metadata.phone || currentUser.phone || '';
+
+            // Fallback check to database table if metadata is incomplete
+            if (!firstName || !lastName || !phone) {
+                try {
+                    const { data: profile } = await client
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', currentUser.id)
+                        .single();
+
+                    if (profile) {
+                        profileSourceTable = true;
+                        firstName = firstName || profile.first_name || '';
+                        lastName = lastName || profile.last_name || '';
+                        phone = phone || profile.phone || '';
+                    }
+                } catch (pErr) {
+                    console.log("Notice: Profiles table query skipped.", pErr);
+                }
+            }
+
+            // Keep the in-memory user object in sync with whatever we resolved
+            currentUser.user_metadata = { ...metadata, first_name: firstName, last_name: lastName, phone: phone };
+            populateProfileFields(currentUser);
+            setupReferralLink(currentUser);
+            loadWallet(client, currentUser);
+
+            // Fetch and display transaction records
+            const tbody = document.getElementById('user-tx-body');
+            try {
+                const res = await fetch('/api/get-my-transactions', {
+                    headers: { Authorization: `Bearer ${session.access_token}` }
+                });
+                if (!res.ok) throw new Error('API request failed');
+
+                const result = await res.json();
+                if (result && result.status && Array.isArray(result.transactions)) {
+                    const userTxs = result.transactions;
+
+                    if (userTxs.length > 0) {
+                        tbody.innerHTML = userTxs.map(t => `
+                            <tr class="hover:bg-slate-900/40 transition whitespace-nowrap">
+                                <td class="p-3 sm:p-3.5 font-mono text-indigo-400">${t.reference || 'N/A'}</td>
+                                <td class="p-3 sm:p-3.5 font-bold text-white">₦${((t.amount || 0) / 100).toLocaleString()}</td>
+                                <td class="p-3 sm:p-3.5">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-mono ${t.status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400'}">${t.status || 'pending'}</span>
+                                </td>
+                                <td class="p-3 sm:p-3.5 text-slate-400">${t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A'}</td>
+                            </tr>
+                        `).join('');
+                        return;
+                    }
+                }
+
+                // If no transactions exist for the user
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">No transactions yet</td></tr>`;
+
+            } catch (err) {
+                console.log("Transaction list notice:", err);
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">No transactions yet</td></tr>`;
+            }
+        }
+
+        async function saveProfile(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('profile-save-btn');
+            const errEl = document.getElementById('profile-error');
+            const succEl = document.getElementById('profile-success');
+            errEl.classList.add('hidden');
+            succEl.classList.add('hidden');
+
+            const firstName = document.getElementById('edit-firstname').value.trim();
+            const lastName = document.getElementById('edit-lastname').value.trim();
+            const phone = document.getElementById('edit-phone').value.trim();
+
+            if (!firstName || !lastName || !phone) {
+                errEl.innerText = "First name, last name, and phone are required.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const client = getSupabase();
+            if (!client || !client.auth) {
+                errEl.innerText = "Supabase failed to load. Please refresh the page and try again.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "Saving...";
+
+                const { data, error } = await client.auth.updateUser({
+                    data: { first_name: firstName, last_name: lastName, phone: phone }
+                });
+
+                if (error) throw error;
+
+                // Best-effort sync to a "profiles" table if the project uses one.
+                try {
+                    await client.from('profiles').upsert({
+                        id: currentUser.id,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: phone
+                    });
+                } catch (tableErr) {
+                    console.log("Notice: profiles table sync skipped.", tableErr);
+                }
+
+                currentUser = data.user || currentUser;
+                currentUser.user_metadata = { ...(currentUser.user_metadata || {}), first_name: firstName, last_name: lastName, phone: phone };
+                populateProfileFields(currentUser);
+
+                succEl.classList.remove('hidden');
+                cancelEditModeKeepingSuccess();
+
+            } catch (err) {
+                errEl.innerText = err.message || "Could not update your profile. Please try again.";
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Changes";
+            }
+        }
+
+        // Same as cancelEditMode but doesn't clear the success message we just set
+        function cancelEditModeKeepingSuccess() {
+            ['edit-firstname', 'edit-lastname', 'edit-phone'].forEach(id => {
+                document.getElementById(id).disabled = true;
+            });
+            document.getElementById('profile-form-actions').classList.add('hidden');
+            document.getElementById('profile-form-actions').classList.remove('flex');
+            document.getElementById('edit-toggle-btn').classList.remove('hidden');
+        }
+
+        async function changePassword(e) {
+            e.preventDefault();
+
+            const btn = document.getElementById('password-save-btn');
+            const errEl = document.getElementById('password-error');
+            const succEl = document.getElementById('password-success');
+            errEl.classList.add('hidden');
+            succEl.classList.add('hidden');
+
+            const newPassword = document.getElementById('new-password').value;
+            const confirmNewPassword = document.getElementById('confirm-new-password').value;
+
+            if (newPassword !== confirmNewPassword) {
+                errEl.innerText = "Passwords do not match.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const client = getSupabase();
+            if (!client || !client.auth) {
+                errEl.innerText = "Supabase failed to load. Please refresh the page and try again.";
+                errEl.classList.add('hidden');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerText = "Updating...";
+
+                const { error } = await client.auth.updateUser({ password: newPassword });
+                if (error) throw error;
+
+                succEl.classList.remove('hidden');
+                document.getElementById('password-form').reset();
+
+            } catch (err) {
+                errEl.innerText = err.message || "Could not update your password. Please try again.";
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Update Password";
+            }
+        }
+
+        async function logout() {
+            const client = getSupabase();
+            if (client) {
+                await client.auth.signOut();
+            }
+            window.location.href = 'login.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', initProfile);
+    </script>
+
+    <!-- FLOATING WHATSAPP -->
+    <a href="https://wa.me/2347018836989" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat with admin on WhatsApp" title="Chat with admin on WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.075-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.36.101 11.943c0 2.105.549 4.161 1.595 5.976L0 24l6.335-1.652c1.745.951 3.71 1.454 5.71 1.455h.005c6.585 0 11.946-5.36 11.949-11.944 0-3.193-1.24-6.19-3.479-8.41zM12.05 21.785h-.005c-1.775 0-3.517-.478-5.037-1.377l-.362-.214-3.751.98 1.001-3.653-.235-.375a9.87 9.87 0 0 1-1.516-5.276c.003-5.462 4.449-9.908 9.913-9.908 2.646 0 5.135 1.034 7.008 2.91 1.872 1.876 2.903 4.367 2.902 7.014-.003 5.462-4.449 9.899-9.918 9.899z"/>
+        </svg>
+    </a>
+</body>
+</html>

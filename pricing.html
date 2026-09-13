@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pricing | EasyConnect Group</title>
+
+    <link rel="icon" href="favicon (2).png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+
+    <style>
+        :root {
+            --primary: #1E3A8A;
+            --secondary: #F97316;
+            --dark: #0F172A;
+            --light: #F8FAFC;
+            --gray: #64748B;
+            --danger: #DC2626;
+            --transition: all 0.3s ease;
+            --nav-height: 70px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        html { max-width: 100%; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+        body { background-color: var(--light); color: var(--dark); line-height: 1.6; width: 100%; max-width: 100%; overflow-x: hidden; }
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        img, video, iframe, table, embed, object { max-width: 100%; height: auto; }
+        button, input, textarea, select { font-size: 1rem; font-family: inherit; }
+        a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--secondary); outline-offset: 2px; }
+        .container { width: 92%; max-width: 1200px; margin: auto; }
+        section { padding: clamp(35px, 5vw, 55px) 0; }
+        .section-title { text-align: center; margin-bottom: 12px; font-size: clamp(1.75rem, 4.5vw, 2.5rem); color: var(--primary); }
+        .section-sub { text-align: center; max-width: 640px; margin: 0 auto 40px; color: var(--gray); font-size: clamp(0.95rem, 2vw, 1.05rem); }
+
+        /* NAVBAR (matches main site) */
+        nav { position: fixed; top: 0; width: 100%; background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; padding: 12px 0; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .logo { font-size: clamp(1rem, 3vw, 1.3rem); font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; flex-shrink: 1; min-width: 0; }
+        .logo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logo img { height: clamp(38px, 6vw, 70px); width: auto; flex-shrink: 0; }
+        .nav-links { display: flex; gap: clamp(12px, 1.6vw, 25px); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .nav-links li a { font-weight: 600; transition: var(--transition); white-space: nowrap; }
+        .nav-links li a:hover { color: var(--secondary); }
+        .btn-book-nav { background: var(--primary); color: #fff !important; padding: 10px 20px; border-radius: 5px; font-weight: 600; }
+        .btn-book-nav:hover { background: var(--secondary); }
+        .hamburger { display: none; cursor: pointer; font-size: 1.8rem; color: var(--primary); background: none; border: none; padding: 5px; flex-shrink: 0; }
+
+        @media (max-width: 900px) {
+            .nav-links {
+                position: fixed; top: var(--nav-height); right: -100%;
+                background: #fff; flex-direction: column; width: 100%;
+                text-align: center; padding: 20px 0; box-shadow: 0 10px 10px rgba(0,0,0,0.1);
+                max-height: calc(100vh - var(--nav-height)); max-height: calc(100dvh - var(--nav-height));
+                overflow-y: auto; gap: 5px;
+            }
+            .nav-links li { width: 100%; padding: 8px 0; }
+            .nav-links.active { right: 0; }
+            .hamburger { display: block; }
+        }
+        @media (max-width: 400px) {
+            .logo span { display: none; }
+        }
+
+        /* PRICING HERO */
+        .pricing-hero {
+            margin-top: var(--nav-height);
+            background: var(--primary);
+            color: #fff;
+            padding: clamp(50px, 8vw, 80px) 0 clamp(40px, 6vw, 60px);
+            text-align: center;
+        }
+        .pricing-hero h1 { font-size: clamp(2rem, 5.5vw, 3rem); margin-bottom: 14px; }
+        .pricing-hero p { font-size: clamp(1rem, 2.2vw, 1.15rem); color: rgba(255,255,255,0.85); max-width: 640px; margin: 0 auto; }
+
+        /* PER-SERVICE PRICING (now clickable) */
+        .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 18px; }
+        .price-row {
+            background: #fff; border-radius: 8px; padding: 20px 24px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            border-left: 4px solid var(--secondary); cursor: pointer; transition: var(--transition);
+            width: 100%; text-align: left; font: inherit; color: inherit;
+        }
+        button.price-row { border-top: none; border-right: none; border-bottom: none; }
+        .price-row:hover, .price-row:focus-visible {
+            transform: translateY(-4px); box-shadow: 0 8px 20px rgba(30,58,138,0.15); border-left-color: var(--primary);
+        }
+        .price-row .service-name { font-weight: 600; }
+        .price-row .service-name small { display: block; color: var(--gray); font-weight: 400; font-size: 0.85rem; margin-top: 3px; }
+        .price-row .price-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .price-row .service-price { font-weight: 700; color: var(--primary); font-size: 1.05rem; white-space: nowrap; text-align: right; }
+        .price-row .chevron { color: var(--gray); transition: var(--transition); }
+        .price-row:hover .chevron { color: var(--secondary); transform: translateX(3px); }
+        .price-hint { text-align: center; color: var(--gray); font-size: 0.88rem; margin-top: -22px; margin-bottom: 30px; }
+        .price-hint i { color: var(--secondary); margin-right: 5px; }
+
+        /* PACKAGE TIERS */
+        #packages { background: var(--light); }
+        .package-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 24px; align-items: stretch; }
+        .package-card { background: #fff; border-radius: 12px; padding: clamp(24px, 4vw, 34px); box-shadow: 0 5px 15px rgba(0,0,0,0.06); display: flex; flex-direction: column; border-top: 4px solid var(--gray); }
+        .package-card.featured { border-top: 4px solid var(--secondary); box-shadow: 0 10px 28px rgba(249,115,22,0.15); transform: translateY(-6px); }
+        .package-tag { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; color: var(--secondary); margin-bottom: 8px; }
+        .package-card h3 { font-size: 1.4rem; color: var(--primary); margin-bottom: 6px; }
+        .package-price { font-size: clamp(1.6rem, 4vw, 2.1rem); font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+        .package-desc { color: var(--gray); font-size: 0.95rem; margin-bottom: 20px; }
+        .package-features { list-style: none; margin-bottom: 26px; flex-grow: 1; }
+        .package-features li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 0.95rem; }
+        .package-features li i { color: var(--secondary); margin-top: 4px; flex-shrink: 0; }
+        .package-cta { display: block; text-align: center; padding: 13px; border-radius: 6px; font-weight: 700; background: var(--primary); color: #fff; transition: var(--transition); }
+        .package-cta:hover { background: var(--secondary); }
+        .package-card.featured .package-cta { background: var(--secondary); }
+        .package-card.featured .package-cta:hover { background: #ea580c; }
+
+        .pricing-note { text-align: center; color: var(--gray); font-size: 0.9rem; max-width: 640px; margin: 30px auto 0; }
+
+        /* PAYMENT SECTION */
+        #payment { background: #fff; }
+        .payment-panel { max-width: 640px; margin: auto; background: var(--light); border-radius: 12px; padding: clamp(24px, 5vw, 40px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .payment-panel h3 { color: var(--primary); font-size: 1.3rem; margin-bottom: 6px; }
+        .payment-panel > p.lead { color: var(--gray); margin-bottom: 24px; }
+        .opay-card { background: var(--primary); color: #fff; border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+        .opay-card .opay-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+        .opay-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.15); flex-wrap: wrap; }
+        .opay-row:last-child { border-bottom: none; }
+        .opay-value { font-weight: 700; font-size: 1.1rem; word-break: break-word; }
+        .copy-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 5px; font-size: 0.82rem; cursor: pointer; transition: var(--transition); flex-shrink: 0; }
+        .copy-btn:hover { background: rgba(255,255,255,0.3); }
+        .payment-steps { margin: 20px 0; padding-left: 20px; }
+        .payment-steps li { margin-bottom: 10px; color: #334155; font-size: 0.95rem; }
+
+        .confirm-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; margin-top: 10px; }
+        .confirm-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); text-align: center; }
+        .confirm-card i { font-size: 1.8rem; color: var(--primary); margin-bottom: 10px; }
+        .confirm-card h4 { margin-bottom: 8px; font-size: 1.05rem; }
+        .confirm-card p { color: var(--gray); font-size: 0.88rem; margin-bottom: 16px; }
+        .confirm-btn { display: inline-block; padding: 10px 22px; border-radius: 5px; font-weight: 700; font-size: 0.92rem; transition: var(--transition); }
+        .confirm-btn.whatsapp { background: #25D366; color: #fff; }
+        .confirm-btn.whatsapp:hover { background: #1ea952; }
+
+        /* UPLOAD PROOF FORM (general payment confirmation) */
+        #proof-form { display: none; flex-direction: column; gap: 14px; text-align: left; margin-top: 16px; }
+        #proof-form.active { display: flex; }
+        #proof-form input, #proof-form select, #proof-form textarea { width: 100%; padding: 13px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 0.95rem; }
+        #proof-form label { font-size: 0.85rem; font-weight: 600; color: var(--dark); margin-bottom: -8px; }
+        #proof-form button[type="submit"] { background: var(--secondary); color: #fff; border: none; padding: 13px; border-radius: 5px; font-weight: 700; cursor: pointer; transition: var(--transition); }
+        #proof-form button[type="submit"]:hover { background: #ea580c; }
+
+        /* FOOTER */
+        footer { background: var(--dark); color: #fff; padding: 60px 0 20px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 40px; margin-bottom: 40px; }
+        .footer-grid h4 { color: var(--secondary); margin-bottom: 20px; font-size: 1.2rem; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a:hover { color: var(--secondary); }
+        .social-icons { display: flex; flex-wrap: wrap; gap: 15px; }
+        .social-icons a { color: #fff; font-size: 1.5rem; transition: var(--transition); }
+        .social-icons a:hover { color: var(--secondary); transform: translateY(-3px); display: inline-block; }
+        .footer-bottom { text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--gray); font-size: 0.9rem; }
+
+        .whatsapp-float {
+            position: fixed; bottom: max(80px, env(safe-area-inset-bottom) + 80px); right: max(20px, env(safe-area-inset-right) + 20px);
+            background: #25D366; color: #fff; width: 55px; height: 55px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; font-size: 1.8rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: var(--transition);
+        }
+        .whatsapp-float:hover { transform: scale(1.1); color: #fff; }
+
+        #scrollTop {
+            position: fixed; bottom: max(20px, env(safe-area-inset-bottom) + 20px); right: max(20px, env(safe-area-inset-right) + 20px);
+            background: var(--primary); color: #fff; width: 46px; height: 46px; border: none; border-radius: 50%;
+            font-size: 1.3rem; cursor: pointer; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 999; transition: var(--transition);
+        }
+        #scrollTop:hover { background: var(--secondary); }
+        #scrollTop.visible { display: block; }
+
+        /* Keep the Dante AI chatbot bubble beside WhatsApp instead of overlapping it */
+        .dante-launcher {
+            right: 90px !important;
+            background-color: #25D366 !important;
+        }
+        @media (max-width: 768px) {
+            .dante-launcher { right: 70px !important; }
+            .whatsapp-float { width: 48px; height: 48px; font-size: 1.5rem; bottom: max(75px, env(safe-area-inset-bottom) + 75px); }
+            #scrollTop { width: 42px; height: 42px; font-size: 1.1rem; }
+        }
+
+        /* ===================== SERVICE MODAL (Terms gate + dynamic form) ===================== */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.75); z-index: 3000;
+            justify-content: center; align-items: center; padding: 20px; overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: #fff; border-radius: 16px; max-width: 560px; width: 100%;
+            max-height: 88vh; overflow-y: auto; padding: clamp(24px, 5vw, 36px);
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        .modal-close {
+            position: absolute; top: 16px; right: 16px; background: var(--light); border: none;
+            width: 34px; height: 34px; border-radius: 50%; cursor: pointer; color: var(--gray);
+            font-size: 1rem; transition: var(--transition);
+        }
+        .modal-close:hover { background: #e2e8f0; color: var(--dark); }
+        .modal-icon { text-align: center; font-size: 2.4rem; color: var(--primary); margin-bottom: 10px; }
+        .modal-card h2 { text-align: center; color: var(--dark); font-size: clamp(1.3rem, 4vw, 1.6rem); margin-bottom: 6px; }
+        .modal-card > p.modal-sub { text-align: center; color: var(--gray); font-size: 0.95rem; margin-bottom: 22px; }
+
+        .terms-box { background: var(--light); border-radius: 10px; padding: 18px 20px; max-height: 320px; overflow-y: auto; margin-bottom: 24px; }
+        .terms-box h4 { color: var(--primary); font-size: 0.95rem; margin-bottom: 10px; }
+        .terms-box h4:not(:first-child) { margin-top: 18px; }
+        .terms-box ul { padding-left: 18px; list-style: disc; margin-bottom: 4px; }
+        .terms-box ul li, .terms-box ol li { margin-bottom: 10px; font-size: 0.9rem; color: #334155; line-height: 1.55; }
+        .terms-box ol { padding-left: 18px; }
+
+        .modal-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-decline, .btn-agree {
+            padding: 13px 30px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: var(--transition); font-size: 0.98rem;
+        }
+        .btn-decline { background: var(--danger); color: #fff; }
+        .btn-decline:hover { background: #b91c1c; }
+        .btn-agree { background: var(--primary); color: #fff; }
+        .btn-agree:hover { background: var(--secondary); }
+
+        .form-price-badge {
+            display: inline-block; background: rgba(30,58,138,0.08); color: var(--primary); font-weight: 700;
+            padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; margin: 0 auto 20px; text-align: center;
+        }
+        .form-price-wrap { text-align: center; }
+
+        .form-section { margin-bottom: 22px; }
+        .form-section-title {
+            display: flex; align-items: center; gap: 8px; color: var(--primary); font-weight: 700; font-size: 0.98rem;
+            margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--light);
+        }
+        .form-section-title .num {
+            background: var(--primary); color: #fff; width: 22px; height: 22px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;
+        }
+        .form-fields-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px; }
+        .form-field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--dark); margin-bottom: 6px; }
+        .form-field .req { color: var(--danger); margin-left: 2px; }
+        .form-field input, .form-field select, .form-field textarea {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.92rem; background: #fff;
+        }
+        .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--primary); }
+        .form-field textarea { resize: vertical; min-height: 70px; }
+        .file-hint { display: block; color: var(--gray); font-size: 0.78rem; margin-top: 4px; }
+
+        .form-submit-btn {
+            width: 100%; background: var(--secondary); color: #fff; border: none; padding: 15px;
+            border-radius: 6px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition); margin-top: 6px;
+        }
+        .form-submit-btn:hover { background: #ea580c; }
+        .form-back-link { display: block; text-align: center; color: var(--gray); font-size: 0.85rem; margin-top: 14px; cursor: pointer; }
+        .form-back-link:hover { color: var(--primary); }
+
+        .payment-choice { margin-top: 10px; }
+        .btn-paystack {
+            width: 100%; background: #011B33; color: #fff; border: none; padding: 15px;
+            border-radius: 6px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: var(--transition);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-paystack:hover { background: #0a2f52; }
+        .payment-choice-divider { text-align: center; color: var(--gray); font-size: 0.82rem; margin: 14px 0; position: relative; }
+        .payment-choice-divider::before, .payment-choice-divider::after {
+            content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border, #e2e8f0);
+        }
+        .payment-choice-divider::before { left: 0; }
+        .payment-choice-divider::after { right: 0; }
+        .payment-choice-divider span { background: #fff; padding: 0 10px; }
+
+        .opay-modal-overlay {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.opay-modal-content {
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.opay-modal-content h3 {
+    margin-top: 0;
+    color: #333;
+}
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav>
+        <div class="container nav-container">
+            <a href="home.html#home" class="logo">
+                <img src="logo.png" alt="EasyConnect Logo">Easyconnect Group
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="pricing.html">Pricing</a></li>
+                <li><a href="home.html#platforms">Our Platforms</a></li>
+                <li><a href="home.html#faq">FAQs</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+                <li><a href="booking.html" class="btn-book-nav">Book a Session</a></li>
+                <li><a href="home.html#subscribe" class="btn-subscribe">Subscribe</a></li>
+            </ul>
+            <button class="hamburger" id="hamburger" aria-label="Toggle navigation menu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <header class="pricing-hero">
+        <div class="container">
+            <h1>Simple, Transparent Pricing</h1>
+            <p>Pay only for what you need — quick one-off services or full AI automation packages. No hidden charges, no long contracts.</p>
+        </div>
+    </header>
+
+    <!-- PER-SERVICE PRICING -->
+    <section id="service-pricing">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">Documentation & VTU Services</h2>
+            <p class="section-sub" data-aos="fade-up">Tap any service below to review the terms and fill out its request form.</p>
+            <div class="price-grid" id="priceGrid"></div>
+        </div>
+        <br>
+        <p style="text-align: center;">Tap a service to open its request form</p>
+    </section>
+
+    <!-- PACKAGES -->
+    <section id="packages">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">AI & Automation Packages</h2>
+            <p class="section-sub" data-aos="fade-up">For businesses ready to automate customer support, workflows, or full operations.</p>
+            <div class="package-grid">
+
+                <div class="package-card" data-aos="fade-up">
+                    <span class="package-tag">STARTER</span>
+                    <h3>Basic</h3>
+                    <div class="package-price">₦100,000</div>
+                    <p class="package-desc">A single AI chatbot to handle FAQs and basic customer queries on one platform.</p>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> 1 AI chatbot (website or WhatsApp)</li>
+                        <li><i class="fas fa-check"></i> FAQ & business knowledge training</li>
+                        <li><i class="fas fa-check"></i> 1 round of revisions</li>
+                        <li><i class="fas fa-check"></i> 2-week delivery</li>
+                    </ul>
+                    <a href="#payment" class="package-cta">Get Started</a>
+                </div>
+
+                <div class="package-card featured" data-aos="fade-up" data-aos-delay="100">
+                    <span class="package-tag">MOST POPULAR</span>
+                    <h3>Standard</h3>
+                    <div class="package-price">₦150,000</div>
+                    <p class="package-desc">A chatbot plus one automated workflow, deployed across multiple platforms.</p>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> AI chatbot on 2+ platforms</li>
+                        <li><i class="fas fa-check"></i> 1 workflow automation (e.g. lead routing)</li>
+                        <li><i class="fas fa-check"></i> 3 rounds of revisions</li>
+                        <li><i class="fas fa-check"></i> Priority support</li>
+                        <li><i class="fas fa-check"></i> 3-week delivery</li>
+                    </ul>
+                    <a href="#payment" class="package-cta">Get Started</a>
+                </div>
+
+                <div class="package-card" data-aos="fade-up" data-aos-delay="200">
+                    <span class="package-tag">ENTERPRISE</span>
+                    <h3>Premium</h3>
+                    <div class="package-price">₦350,000</div>
+                    <p class="package-desc">A full AI workforce with multiple integrations, built around your entire business.</p>
+                    <ul class="package-features">
+                        <li><i class="fas fa-check"></i> Full AI agent + workforce setup</li>
+                        <li><i class="fas fa-check"></i> CRM, email & calendar integrations</li>
+                        <li><i class="fas fa-check"></i> Custom-trained on your business data</li>
+                        <li><i class="fas fa-check"></i> Dedicated support contact</li>
+                        <li><i class="fas fa-check"></i> 4–6 week delivery</li>
+                    </ul>
+                    <a href="#payment" class="package-cta">Get Started</a>
+                </div>
+
+            </div>
+            <p class="pricing-note">Need something bigger or more specific? <a href="contact.html" style="color: var(--primary); font-weight: 600;">Contact us</a> for a custom quote.</p>
+        </div>
+    </section>
+
+    <!-- PAYMENT -->
+    <section id="payment">
+        <div class="container">
+            <h2 class="section-title" data-aos="fade-up">How to Pay</h2>
+            <p class="section-sub" data-aos="fade-up">Pay instantly by card or bank via Paystack when requesting a service above, or transfer directly to our OPay account below.</p>
+
+            <div class="payment-panel" data-aos="fade-up">
+                <h3>Pay via OPay Transfer</h3>
+                <p class="lead">Transfer the exact amount for your service or package to the account below.</p>
+
+                <div class="opay-card">
+                    <div class="opay-row">
+                        <div>
+                            <div class="opay-label">Bank</div>
+                            <div class="opay-value">OPay Digital Services Limited</div>
+                        </div>
+                    </div>
+                    <div class="opay-row">
+                        <div>
+                            <div class="opay-label">Account Number</div>
+                            <div class="opay-value" id="acctNumber">7018836989</div>
+                        </div>
+                        <button class="copy-btn" onclick="copyAccount()" id="copyBtn">Copy</button>
+                    </div>
+                    <div class="opay-row">
+                        <div>
+                            <div class="opay-label">Account Name</div>
+                            <div class="opay-value">BENJAMIN IGWE OKORO</div>
+                        </div>
+                    </div>
+                </div>
+
+                <ol class="payment-steps">
+                    <li>Open your bank or OPay app and transfer the exact service/package amount to the account above.</li>
+                    <li>Take a screenshot of your successful payment confirmation.</li>
+                    <li>Confirm your payment below via WhatsApp or the upload form, along with which service or package you paid for.</li>
+                    <li>We begin processing your request immediately after confirmation.</li>
+                </ol>
+
+                <div class="confirm-options">
+                    <div class="confirm-card">
+                        <i class="fab fa-whatsapp"></i>
+                        <h4>Send on WhatsApp</h4>
+                        <p>Fastest way — message us directly with your proof of payment.</p>
+                        <a href="https://wa.me/2347042131467?text=Hi%2C%20I%20just%20made%20a%20payment%20via%20OPay.%20Here%20is%20my%20proof%20of%20payment." target="_blank" rel="noopener" class="confirm-btn whatsapp"><i class="fab fa-whatsapp"></i> Message Us</a>
+                    </div>
+                    <div class="confirm-card">
+                        <i class="fas fa-upload"></i>
+                        <h4>Upload Proof</h4>
+                        <p>Prefer a form? Upload your payment screenshot here instead.</p>
+                        <button class="confirm-btn" style="background: var(--primary); color: #fff; border: none; cursor: pointer;" onclick="toggleForm()" id="toggleFormBtn">Open Upload Form</button>
+                    </div>
+                </div>
+
+                <form id="proof-form" action="https://formsubmit.co/eazyconnect34@gmail.com" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="_subject" value="New OPay Payment Confirmation!">
+                    <input type="hidden" name="_captcha" value="false">
+                    <label for="pf-name">Full Name</label>
+                    <input type="text" id="pf-name" name="name" placeholder="Your full name" required>
+                    <label for="pf-phone">Phone Number</label>
+                    <input type="text" id="pf-phone" name="phone" placeholder="Your phone number" required>
+                    <label for="pf-service">Service or Package Paid For</label>
+                    <input type="text" id="pf-service" name="service" placeholder="e.g. CAC Business Name Registration" required>
+                    <label for="pf-amount">Amount Paid</label>
+                    <input type="text" id="pf-amount" name="amount" placeholder="e.g. ₦15,000" required>
+                    <label for="pf-proof">Upload Payment Screenshot</label>
+                    <input type="file" id="pf-proof" name="proof" accept="image/*,.pdf" required>
+                    <button type="submit">Submit Payment Confirmation</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <h4>EasyConnect Group</h4>
+                    <p style="color: var(--gray);">Automating the future, integrating digital services seamlessly for individuals and businesses.</p>
+                </div>
+                <div>
+                    <h4>Useful Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="home.html">Home</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="services.html">Our Services</a></li>
+                        <li><a href="pricing.html">Pricing</a></li>
+                        <li><a href="booking.html">Book a Consultation</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <ul class="footer-links">
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="terms.html">Terms & Conditions</a></li>
+                        <li><a href="home.html">FAQs</a></li>
+                    </ul>
+                    <a href="register.html" class="btn-subscribe">Get Started</a>
+                </div>
+                <div>
+                    <h4>Connect With Us</h4>
+                    <div class="social-icons">
+                        <a href="https://www.facebook.com/profile.php?id=61566488271536" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://x.com/OkoroBen11" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="https://www.instagram.com/easyconet/" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/in/okoroben08/" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026-2030 - EasyConnect Group. All Rights Reserved.</p>
+                <p style="color: #ffffff; font-weight: 700;"><i>Powered by:</i>  Innovation</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FLOATING WHATSAPP -->
+    <a href="https://wa.me/2347042131467" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- SCROLL TO TOP (appears once the footer scrolls into view) -->
+    <button id="scrollTop" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- ===================== SERVICE REQUEST MODAL ===================== -->
+    <div class="modal-overlay" id="serviceModal">
+        <div class="modal-card" id="modalCard">
+            <!-- content injected by JS -->
+        </div>
+    </div>
+
+    <!-- OPay Details Modal -->
+<div id="opay-modal" class="opay-modal-overlay" style="display: none;">
+    <div class="opay-modal-content">
+        <h3>Transfer via OPay</h3>
+        <p>Please make your transfer to the account details below:</p>
+        <ul style="list-style: none; padding: 0; text-align: left; margin: 15px 0;">
+            <li><strong>Bank:</strong> OPay</li>
+            <li><strong>Account Number:</strong> 7018836989</li>
+            <li><strong>Account Name:</strong> BENJAMIN IGWE OKORO</li>
+        </ul>
+        <button type="button" onclick="closeOpayModal()" class="form-submit-btn">I Have Made This Transfer</button>
+    </div>
+</div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ once: true, offset: 80, disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+        hamburger.addEventListener('click', () => {
+            const isOpen = navLinks.classList.toggle('active');
+            hamburger.innerHTML = isOpen ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        document.querySelectorAll('.nav-links li a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+                hamburger.innerHTML = '<i class="fas fa-bars"></i>';
+                hamburger.setAttribute('aria-expanded', 'false');
+            });
+        });
+
+        function copyAccount() {
+            const acct = document.getElementById('acctNumber').textContent.trim();
+            navigator.clipboard.writeText(acct).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const original = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = original; }, 1800);
+            });
+        }
+
+        function toggleForm() {
+            const form = document.getElementById('proof-form');
+            const btn = document.getElementById('toggleFormBtn');
+            const isActive = form.classList.toggle('active');
+            btn.textContent = isActive ? 'Close Form' : 'Open Upload Form';
+            if (isActive) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Show the scroll-to-top arrow only once the footer comes into view
+        const scrollTopBtn = document.getElementById('scrollTop');
+        const footerEl = document.querySelector('footer');
+        if (footerEl && scrollTopBtn) {
+            const footerObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    scrollTopBtn.classList.toggle('visible', entry.isIntersecting);
+                });
+            }, { threshold: 0.05 });
+            footerObserver.observe(footerEl);
+        }
+
+        /* =========================================================
+           SERVICE REQUEST SYSTEM
+           Each service is data — not hand-written HTML — so all ~30
+           forms share one renderer. Edit the SERVICES array below to
+           change prices, labels, or fields; nothing else needs touching.
+        ========================================================= */
+
+        const NG_STATES = ['Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno','Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','Gombe','Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos','Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto','Taraba','Yobe','Zamfara','FCT - Abuja'];
+        const BANKS = ['Access Bank','GTBank','Zenith Bank','UBA','First Bank','Union Bank','Fidelity Bank','Sterling Bank','Wema Bank','Polaris Bank','FCMB','Stanbic IBTC','Ecobank','Keystone Bank','Unity Bank','Providus Bank','OPay','PalmPay','Moniepoint','Kuda Bank','Other'];
+        const NETWORKS = ['MTN','Airtel','Glo','9mobile'];
+        const PAYSTACK_PUBLIC_KEY = 'pk_live_089c5b9e145ecc8e93ee2329b0079bf1a13c220d';
+
+        function baseApplicantFields() {
+            return [
+                {t:'text', n:'full_name', l:'Full Name'},
+                {t:'tel', n:'phone', l:'Phone Number'},
+                {t:'email', n:'email', l:'Email Address'},
+                {t:'select', n:'contact_pref', l:'Preferred Contact Method', o:['Phone Call','WhatsApp','Email']}
+            ];
+        }
+        function idLocationFields() {
+            return [
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'select', n:'state', l:'State', o:NG_STATES},
+                {t:'text', n:'lga', l:'LGA'},
+                {t:'text', n:'address', l:'Residential Address'}
+            ];
+        }
+        function docFields() {
+            return [{t:'file', n:'document', l:'Upload Supporting Document'}];
+        }
+
+        const SERVICES = [
+            { id:'nin-registration', name:'NIN Registration', price:'₦25,000|₦23,000', sub:'New National Identification Number enrolment for adults and children.',
+              s2t:'Registration Details', s2:[
+                {t:'select', n:'applicant_type', l:'Applicant Type', o:['Adult','Child']},
+                {t:'date', n:'dob', l:'Date of Birth'},
+                {t:'select', n:'gender', l:'Gender', o:['Male','Female']},
+                {t:'select', n:'marital_status', l:'Marital Status', o:['Single','Married','Divorced','Widowed']}
+              ]},
+            { id:'nin-dob-mod', name:'NIN DOB Modification', price:'₦60,000', sub:'Correct the date of birth on an existing NIN record.',
+              s2t:'Modification Details', s2:[
+                {t:'date', n:'old_dob', l:'Old Date of Birth'},
+                {t:'date', n:'new_dob', l:'New Date of Birth'},
+                {t:'select', n:'reason', l:'Reason for Correction', o:['Clerical Error','Age Declaration','Court Affidavit','Other']}
+              ]},
+            { id:'nin-name-mod', name:'NIN Name Modification', price:'₦13,000', sub:'Correct or update the name on an existing NIN record.',
+              s2t:'Modification Details', s2:[
+                {t:'text', n:'old_name', l:'Old Full Name'},
+                {t:'text', n:'new_name', l:'New Full Name'},
+                {t:'select', n:'reason', l:'Reason for Change', o:['Marriage','Spelling Correction','Court Affidavit','Other']}
+              ]},
+            { id:'nin-phone-mod', name:'NIN Phone Modification', price:'₦13,000', sub:'Update the phone number linked to an existing NIN record.',
+              s2t:'Modification Details', s2:[
+                {t:'tel', n:'old_phone', l:'Old Phone Number'},
+                {t:'tel', n:'new_phone', l:'New Phone Number'}
+              ]},
+            { id:'nin-address-mod', name:'NIN Address Modification', price:'₦13,000', sub:'Update the residential address on an existing NIN record.',
+              s2t:'Modification Details', s2:[
+                {t:'text', n:'old_address', l:'Old Address'},
+                {t:'text', n:'new_address', l:'New Address'}
+              ]},
+            { id:'nin-verification', name:'NIN Verification', price:'₦2,000', sub:'Verify the validity and details of a National Identification Number.',
+              s2t:'Verification Details', s2:[
+                {t:'text', n:'nin_to_verify', l:'NIN Number to Verify'},
+                {t:'select', n:'purpose', l:'Purpose of Verification', o:['Employment','Bank Account Opening','SIM Registration','Other']}
+              ]},
+            { id:'bvn-verification', name:'BVN Verification', price:'₦2000', sub:'Verify a Bank Verification Number and linked account details.',
+              s2t:'Verification Details', s2:[
+                {t:'text', n:'bvn', l:'BVN Number'},
+                {t:'select', n:'bank_name', l:'Bank Name', o:BANKS}
+              ]},
+            { id:'nin-val-norecord', name:'NIN Validation — No Record Found', price:'₦3,500', sub:'Resolve a "no record found" error on an existing NIN.',
+              s2t:'Issue Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'date', n:'enrolment_date', l:'Approx. Date of Original Enrolment'}
+              ]},
+            { id:'nin-val-photo', name:'NIN Validation — Photograph Error', price:'₦4,500', sub:'Resolve a photograph mismatch or error on an existing NIN.',
+              s2t:'Issue Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'textarea', n:'error_desc', l:'Description of the Error'}
+              ]},
+            { id:'nin-val-bank', name:'NIN Validation — Bank Validation', price:'₦4,000', sub:'Resolve a bank-side validation issue linked to an existing NIN.',
+              s2t:'Issue Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'select', n:'bank_name', l:'Bank Name', o:BANKS}
+              ]},
+            { id:'nin-val-mod', name:'NIN Validation — Modification Validation', price:'₦4,000', sub:'Resolve a validation error following a NIN modification.',
+              s2t:'Issue Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'select', n:'mod_type', l:'Modification Type Affected', o:['Name','Phone','Address','Date of Birth']}
+              ]},
+            { id:'nin-val-sim', name:'NIN Validation — SIM Validation', price:'₦4,000', sub:'Resolve a NIN-SIM linkage validation issue.',
+              s2t:'Issue Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'tel', n:'sim_number', l:'Phone Number / SIM'},
+                {t:'select', n:'network', l:'Network Provider', o:NETWORKS}
+              ]},
+            { id:'ipe-clearance', name:'IPE Clearance', price:'₦1,500', sub:'Clear a pending Identity Provisioning Enrolment (IPE) record.',
+              s2t:'Clearance Details', s2:[
+                {t:'text', n:'nin', l:'NIN Number'},
+                {t:'text', n:'ipe_ref', l:'IPE Reference Code (if any)'}
+              ]},
+            { id:'cac-business-name', name:'CAC Business Name Registration', price:'₦30,000', sub:'Register a new business name with the Corporate Affairs Commission.',
+              s2t:'Business Details', s2:[
+                {t:'text', n:'name_choice_1', l:'Proposed Business Name (1st Choice)'},
+                {t:'text', n:'name_choice_2', l:'Proposed Business Name (2nd Choice)'},
+                {t:'text', n:'nature', l:'Nature of Business'}
+              ]},
+            { id:'cac-limited', name:'CAC Limited Company Registration', price:'₦55,000', sub:'Register a new Limited Liability Company with the CAC.',
+              s2t:'Company Details', s2:[
+                {t:'text', n:'company_name', l:'Company Name'},
+                {t:'text', n:'nature', l:'Nature of Business'},
+                {t:'select', n:'directors', l:'Number of Directors', o:['1','2','3','4+']}
+              ]},
+            { id:'cac-ngo', name:'CAC NGO Registration', price:'₦80,000', sub:'Register a new Non-Governmental Organization / Incorporated Trustees.',
+              s2t:'Organization Details', s2:[
+                {t:'text', n:'org_name', l:'Organization Name'},
+                {t:'textarea', n:'objective', l:'Objective of Organization'},
+                {t:'select', n:'trustees', l:'Number of Trustees', o:['3','5','7+']}
+              ]},
+            { id:'tax-id', name:'Tax ID Application', price:'₦2,000', sub:'Apply for a Tax Identification Number for yourself or your business.',
+              s2t:'Application Details', s2:[
+                {t:'text', n:'entity_name', l:'Business / Individual Name'},
+                {t:'select', n:'tin_type', l:'TIN Type', o:['Individual','Corporate']}
+              ]},
+            { id:'copyright', name:'Copyright Application', price:'₦68,000', sub:'Register copyright protection for a creative or intellectual work.',
+              s2t:'Work Details', s2:[
+                {t:'text', n:'work_title', l:'Title of Work'},
+                {t:'select', n:'work_type', l:'Type of Work', o:['Literary','Musical','Artistic','Software','Other']}
+              ]},
+            { id:'scuml', name:'SCUML Fast-Track', price:'₦33,000', sub:'Fast-track Special Control Unit Against Money Laundering registration.',
+              s2t:'Business Details', s2:[
+                {t:'text', n:'business_name', l:'Business Name'},
+                {t:'text', n:'cac_number', l:'CAC Registration Number'}
+              ]},
+            { id:'export-licence', name:'Export Licence', price:'₦8,500', sub:'Apply for a licence to legally export goods from Nigeria.',
+              s2t:'Business Details', s2:[
+                {t:'text', n:'business_name', l:'Business Name'},
+                {t:'text', n:'product', l:'Product to be Exported'}
+              ]},
+            { id:'passport-32', name:'International Passport (32 Pages / 5 Years)', price:'₦145,000', sub:'Apply for a standard 32-page, 5-year Nigerian international passport.',
+              s2t:'Passport Details', s2:[
+                {t:'text', n:'old_passport_no', l:'Old Passport Number (if any)'},
+                {t:'select', n:'passport_type', l:'Passport Type', o:['Fresh','Renewal']}
+              ]},
+            { id:'passport-64', name:'International Passport (64 Pages / 10 Years)', price:'₦250,000', sub:'Apply for the 64-page, 10-year Nigerian international passport.',
+              s2t:'Passport Details', s2:[
+                {t:'text', n:'old_passport_no', l:'Old Passport Number (if any)'},
+                {t:'select', n:'passport_type', l:'Passport Type', o:['Fresh','Renewal']}
+              ]},
+            { id:'exam-pin', name:'WAEC / NECO / JAMB PIN', price:'₦5,000|₦3,000|₦10,500', sub:'Purchase a result checker or registration PIN for WAEC, NECO, or JAMB.',
+              s2t:'Exam Details', s2:[
+                {t:'select', n:'exam_type', l:'Exam Type', o:['WAEC','NECO','JAMB']},
+                {t:'text', n:'exam_year', l:'Exam Year'},
+                {t:'text', n:'reg_number', l:'Candidate Registration Number'}
+              ]},
+            { id:'waec-retrieval', name:'WAEC Certificate Retrieval', price:'₦16,500', sub:'Retrieve an original WAEC certificate on your behalf.',
+              s2t:'Exam Details', s2:[
+                {t:'text', n:'exam_year', l:'Exam Year'},
+                {t:'text', n:'reg_number', l:'Candidate Registration Number'},
+                {t:'text', n:'center_number', l:'Center Number'}
+              ]},
+            { id:'affidavit', name:'Affidavit', price:'₦10,500', sub:'Prepare a sworn affidavit for various legal or administrative purposes.',
+              s2t:'Affidavit Details', s2:[
+                {t:'select', n:'affidavit_type', l:'Type of Affidavit', o:['Age Declaration','Change of Name','Loss of Document','Statement of Identity','Other']},
+                {t:'text', n:'purpose', l:'Purpose of Affidavit'}
+              ]},
+            { id:'birth-attestation', name:'Birth Attestation', price:'₦30,000', sub:'Obtain a sworn birth attestation for a child or individual.',
+              s2t:'Attestation Details', s2:[
+                {t:'text', n:'child_name', l:'Full Name of Child'},
+                {t:'date', n:'dob', l:'Date of Birth'},
+                {t:'text', n:'place_of_birth', l:'Place of Birth'}
+              ]},
+            { id:'lga-origin', name:'LGA Origin Certificate', price:'₦13,500', sub:'Obtain an official State/LGA of Origin certificate.',
+              s2t:'Certificate Details', s2:[
+                {t:'select', n:'purpose', l:'Purpose of Certificate', o:['Employment','School Admission','International Passport','Other']},
+                {t:'text', n:'town_village', l:'Town / Village of Origin'}
+              ]},
+            { id:'vtu-airtime-data', name:'Airtime & Data (VTU)', price:'Face value + 2%', sub:'Instant airtime or data top-up on any Nigerian network.', util:true,
+              s2t:'Service Details', s2:[
+                {t:'select', n:'network', l:'Network Provider', o:NETWORKS},
+                {t:'select', n:'vtu_type', l:'Type', o:['Airtime','Data']}
+              ],
+              s3t:'Billing Details', s3:[
+                {t:'tel', n:'recipient_phone', l:'Recipient Phone Number'},
+                {t:'text', n:'plan_description', l:'Plan / Amount Requested (e.g. 2GB MTN)'},
+                {t:'number', n:'amount_to_pay', l:'Total Amount to Pay (₦, incl. 2% fee)'}
+              ]},
+            { id:'cable-subscription', name:'Cable Subscription', price:'Face value + ₦200', sub:'Renew or activate a cable TV subscription.', util:true,
+              s2t:'Service Details', s2:[
+                {t:'select', n:'provider', l:'Cable Provider', o:['DStv','GOtv','StarTimes']},
+                {t:'text', n:'package', l:'Package / Bouquet'}
+              ],
+              s3t:'Billing Details', s3:[
+                {t:'text', n:'smartcard', l:'Smartcard / IUC Number'},
+                {t:'text', n:'account_name', l:'Customer Name on Account'},
+                {t:'number', n:'amount_to_pay', l:'Total Amount to Pay (₦, incl. ₦200 fee)'}
+              ]},
+            { id:'electricity-bill', name:'Electricity Bill', price:'Face value + ₦300', sub:'Pay an electricity bill for any Nigerian distribution company.', util:true,
+              s2t:'Service Details', s2:[
+                {t:'select', n:'disco', l:'Distribution Company (Disco)', o:['Ikeja Electric','Eko Electric','Abuja Electric','Port Harcourt Electric','Other']},
+                {t:'select', n:'meter_type', l:'Meter Type', o:['Prepaid','Postpaid']}
+              ],
+              s3t:'Billing Details', s3:[
+                {t:'text', n:'meter_number', l:'Meter Number'},
+                {t:'text', n:'account_name', l:'Customer Name on Account'},
+                {t:'number', n:'amount_to_pay', l:'Total Amount to Pay (₦, incl. ₦300 fee)'}
+              ]}
+        ];
+
+        // ---- Render the clickable price grid from SERVICES ----
+        const priceGrid = document.getElementById('priceGrid');
+        priceGrid.innerHTML = SERVICES.map(s => `
+            <button type="button" class="price-row" data-aos="fade-up" onclick="openService('${s.id}')">
+                <span class="service-name">${s.name}<small>${s.sub}</small></span>
+                <span class="price-right">
+                    <span class="service-price">${s.price}</span>
+                    <i class="fas fa-chevron-right chevron"></i>
+                </span>
+            </button>
+        `).join('');
+
+        // ---- Field renderer ----
+        function fieldHTML(f) {
+            if (f.t === 'select') {
+                return `<div class="form-field"><label>${f.l}<span class="req">*</span></label>
+                    <select name="${f.n}" required>
+                        <option value="">Select ${f.l}</option>
+                        ${f.o.map(op => `<option value="${op}">${op}</option>`).join('')}
+                    </select></div>`;
+            }
+            if (f.t === 'textarea') {
+                return `<div class="form-field"><label>${f.l}<span class="req">*</span></label>
+                    <textarea name="${f.n}" required></textarea></div>`;
+            }
+            if (f.t === 'file') {
+                return `<div class="form-field"><label>${f.l}<span class="req">*</span></label>
+                    <input type="file" name="${f.n}" accept="image/png,image/jpeg,image/jpg,.pdf" required>
+                    <small class="file-hint">Accepted: PNG, JPG, JPEG, or PDF — max 5MB</small></div>`;
+            }
+            const pattern = f.t === 'tel' ? ' pattern="[0-9]{10,11}"' : '';
+            return `<div class="form-field"><label>${f.l}<span class="req">*</span></label>
+                <input type="${f.t}" name="${f.n}" required${pattern}></div>`;
+        }
+
+        function sectionHTML(num, title, fields) {
+            return `<div class="form-section">
+                <div class="form-section-title"><span class="num">${num}</span> ${title}</div>
+                <div class="form-fields-grid">${fields.map(fieldHTML).join('')}</div>
+            </div>`;
+        }
+
+        const TERMS_HTML = `
+            <h4>Operational Instructions & Processing Times</h4>
+            <ul>
+                <li><strong>Service Categories & Processing:</strong> Only fresh requests can be submitted through this form. If a related record already exists on a self-service government portal, please contact us before submitting.</li>
+                <li><strong>Processing Timelines:</strong> Requests are processed promptly through our priority pipeline once payment is confirmed.</li>
+                <li><strong>Strict Formatting:</strong> Names, states, and LGAs must be entered clearly and accurately. NIN numbers must be exactly 11 digits.</li>
+                <li><strong>Document Upload:</strong> Upload a clear file (PNG, JPG, JPEG, or PDF) not exceeding 5MB.</li>
+            </ul>
+            <h4>Terms & Conditions</h4>
+            <ol>
+                <li><strong>Accuracy of Information:</strong> You confirm that all particulars, NIN, and details provided are true and that you are legally authorized to submit this request.</li>
+                <li><strong>Non-Refundable Fees:</strong> Service fees are non-refundable once processing has commenced with the relevant agency (NIMC, CAC, WAEC, or other government body).</li>
+                <li><strong>Compliance:</strong> Providing false documents or information is a punishable offense under Nigerian law. EasyConnect Group reserves the right to decline or suspend requests submitting fraudulent documents.</li>
+            </ol>
+        `;
+
+        function renderTermsStep(service) {
+            document.getElementById('modalCard').innerHTML = `
+                <button class="modal-close" onclick="closeServiceModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="modal-icon"><i class="fas fa-shield-halved"></i></div>
+                <h2>Terms & Guidelines</h2>
+                <p class="modal-sub">Please review the operational instructions and terms before proceeding with <strong>${service.name}</strong>.</p>
+                <div class="terms-box">${TERMS_HTML}</div>
+                <div class="modal-actions">
+                    <button class="btn-decline" onclick="closeServiceModal()">Decline</button>
+                    <button class="btn-agree" onclick="renderFormStep('${service.id}')">I Agree</button>
+                </div>
+            `;
+        }
+
+        function renderFormStep(serviceId) {
+            const service = SERVICES.find(s => s.id === serviceId);
+            const sec3Title = service.util ? service.s3t : 'Identification & Location';
+            const sec3Fields = service.util ? service.s3 : idLocationFields();
+
+            document.getElementById('modalCard').innerHTML = `
+                <button class="modal-close" onclick="closeServiceModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <h2>${service.name}</h2>
+                <p class="modal-sub">${service.sub}</p>
+                <div class="form-price-wrap"><span class="form-price-badge"><i class="fas fa-tag"></i>&nbsp; ${service.price}</span></div>
+
+                <form id="serviceForm" action="https://formsubmit.co/eazyconnect34@gmail.com" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="_subject" value="New Request: ${service.name}">
+                    <input type="hidden" name="_captcha" value="false">
+                    <input type="hidden" name="service_requested" value="${service.name}">
+                    <input type="hidden" name="service_price" value="${service.price}">
+                    <input type="hidden" name="payment_status" value="Awaiting OPay transfer">
+
+                    ${sectionHTML(1, 'Applicant Information', baseApplicantFields())}
+                    ${sectionHTML(2, service.s2t, service.s2)}
+                    ${sectionHTML(3, sec3Title, sec3Fields)}
+                    ${sectionHTML(4, 'Document Upload', docFields())}
+
+                    <div class="payment-choice">
+                        <button type="button" class="btn-paystack" onclick="payWithPaystack('${service.id}')">
+                            <i class="fas fa-credit-card"></i> Pay Now with Card / Bank (Paystack)
+                        </button>
+                        <div class="payment-choice-divider"><span>or</span></div>
+                        <button type="submit" class="form-submit-btn">
+                            <i class="fas fa-paper-plane"></i>&nbsp; Submit Request & Pay via OPay Transfer
+                        </button>
+                    </div>
+                </form>
+                <span class="form-back-link" onclick="closeServiceModal()">Cancel and close</span>
+            `;
+        }
+
+        /* ---- Paystack amount resolution ----
+           Most services have one fixed price; a few have tiers (a dropdown
+           determines the actual charge) or a variable amount the customer
+           enters (utility bills). This resolves whichever applies. */
+        function resolveAmount(service, formEl) {
+            if (service.id === 'nin-registration') {
+                const type = formEl.querySelector('[name="applicant_type"]')?.value;
+                return type === 'Child' ? 23000 : type === 'Adult' ? 25000 : 0;
+            }
+            if (service.id === 'exam-pin') {
+                const type = formEl.querySelector('[name="exam_type"]')?.value;
+                if (type === 'NECO') return 3000;
+                if (type === 'JAMB') return 10500;
+                if (type === 'WAEC') return 5000;
+                return 0;
+            }
+            if (service.util) {
+                const val = parseFloat(formEl.querySelector('[name="amount_to_pay"]')?.value);
+                return isNaN(val) || val <= 0 ? 0 : val;
+            }
+            const numeric = parseInt(String(service.price).replace(/[^0-9]/g, ''), 10);
+            return isNaN(numeric) ? 0 : numeric;
+        }
+
+        function payWithPaystack(serviceId) {
+            const service = SERVICES.find(s => s.id === serviceId);
+            const formEl = document.getElementById('serviceForm');
+
+            // Run the form's native validation first (required fields, patterns, etc.)
+            if (!formEl.reportValidity()) return;
+
+            const email = formEl.querySelector('[name="email"]')?.value;
+            const amount = resolveAmount(service, formEl);
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount before paying.');
+                return;
+            }
+
+            const reference = 'ECG_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+
+            const handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: email,
+                amount: Math.round(amount * 100), // Paystack expects kobo
+                currency: 'NGN',
+                ref: reference,
+                metadata: {
+                    service: service.name,
+                    custom_fields: [
+                        { display_name: 'Service', variable_name: 'service', value: service.name }
+                    ]
+                },
+                callback: function (response) {
+                    verifyAndNotify(response.reference, service, formEl);
+                },
+                onClose: function () {
+                    // Customer closed the popup without paying — no action needed.
+                }
+            });
+            handler.openIframe();
+        }
+
+        async function verifyAndNotify(reference, service, formEl) {
+            renderVerifyingStep();
+            try {
+                const res = await fetch('/api/verify-payment?reference=' + encodeURIComponent(reference));
+                const result = await res.json();
+
+                if (result && result.status && result.data && result.data.status === 'success') {
+                    await notifyAdminByEmail(service, formEl, reference);
+                    renderSuccessStep(service, reference);
+                } else {
+                    renderVerifyFailedStep(reference);
+                }
+            } catch (err) {
+                renderVerifyFailedStep(reference);
+            }
+        }
+
+        // Sends the same request details to FormSubmit via AJAX (no page reload)
+        // once payment is confirmed, so you still get the full request by email.
+        async function notifyAdminByEmail(service, formEl, reference) {
+            try {
+                const formData = new FormData(formEl);
+                formData.set('payment_status', 'PAID via Paystack — Ref: ' + reference);
+                await fetch('https://formsubmit.co/ajax/eazyconnect34@gmail.com', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: formData
+                });
+            } catch (err) {
+                // Payment already succeeded and was verified — a notification email
+                // failing shouldn't block the customer's success confirmation.
+            }
+        }
+
+        function renderVerifyingStep() {
+            document.getElementById('modalCard').innerHTML = `
+                <div class="modal-icon"><i class="fas fa-spinner fa-spin"></i></div>
+                <h2>Verifying Payment...</h2>
+                <p class="modal-sub">Please wait while we confirm your payment with Paystack.</p>
+            `;
+        }
+
+        function renderSuccessStep(service, reference) {
+            document.getElementById('modalCard').innerHTML = `
+                <button class="modal-close" onclick="closeServiceModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="modal-icon" style="color: #16A34A;"><i class="fas fa-circle-check"></i></div>
+                <h2>Payment Successful</h2>
+                <p class="modal-sub">Your payment for <strong>${service.name}</strong> was confirmed. We've received your request and will begin processing shortly.</p>
+                <div class="payment-summary">
+                    <div class="payment-row"><span>Reference</span><span>${reference}</span></div>
+                </div>
+                <p class="modal-sub">Keep this reference for your records. Questions? <a href="https://wa.me/2347042131467" target="_blank" rel="noopener" style="color: var(--primary); font-weight:600;">Message us on WhatsApp</a>.</p>
+                <button class="form-submit-btn" onclick="closeServiceModal()">Done</button>
+            `;
+        }
+
+        function renderVerifyFailedStep(reference) {
+            document.getElementById('modalCard').innerHTML = `
+                <button class="modal-close" onclick="closeServiceModal()" aria-label="Close"><i class="fas fa-times"></i></button>
+                <div class="modal-icon" style="color: var(--danger);"><i class="fas fa-triangle-exclamation"></i></div>
+                <h2>Couldn't Confirm Payment</h2>
+                <p class="modal-sub">We weren't able to verify this payment automatically. If you were charged, please don't try again — contact us with your reference number instead.</p>
+                <div class="payment-summary">
+                    <div class="payment-row"><span>Reference</span><span>${reference}</span></div>
+                </div>
+                <a href="https://wa.me/2347042131467?text=Hi%2C%20my%20payment%20reference%20is%20${reference}%20and%20it%20wasn%27t%20confirmed%20on%20the%20site." target="_blank" rel="noopener" class="confirm-btn whatsapp" style="display:block; text-align:center;"><i class="fab fa-whatsapp"></i> Message Us on WhatsApp</a>
+            `;
+        }
+
+        function openService(serviceId) {
+            const service = SERVICES.find(s => s.id === serviceId);
+            if (!service) return;
+            renderTermsStep(service);
+            document.getElementById('serviceModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeServiceModal() {
+            document.getElementById('serviceModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('serviceModal').addEventListener('click', (e) => {
+            if (e.target.id === 'serviceModal') closeServiceModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeServiceModal();
+        });
+        document.getElementById('serviceForm').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Stop normal redirection
+    
+    // Update the status field value for OPay
+    this.querySelector('input[name="payment_status"]').value = "Awaiting OPay transfer (Acct: 7018836989)";
+
+    // Send data to FormSubmit in the background
+    const formData = new FormData(this);
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+    }).catch(err => console.error('Form submission error:', err));
+
+    // Show the OPay account details modal immediately
+    document.getElementById('opay-modal').style.display = 'flex';
+});
+
+function closeOpayModal() {
+    document.getElementById('opay-modal').style.display = 'none';
+    window.location.href = 'opay-payment.html'; // Redirect user after confirmation
+}
+    // Your other page scripts or initializations (e.g., wallet loader, session checks) can stay here
+
+    // --- PASTE THIS CODE HERE ---
+    document.getElementById('serviceForm').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        
+        const serviceName = encodeURIComponent(this.querySelector('input[name="service_requested"]').value);
+        const servicePrice = encodeURIComponent(this.querySelector('input[name="service_price"]').value);
+
+        // 1. Send data silently to FormSubmit in the background
+        const formData = new FormData(this);
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+        }).catch(err => console.error('Form submission error:', err));
+
+        // 2. Redirect the user to your dedicated OPay payment page
+        window.location.href = `opay-payment.html?service=${serviceName}&price=${servicePrice}`;
+    });
+
+    </script>
+
+    <script src="https://www.dante-ai.com/embed.js" data-agent-id="2b2d3f8f-943f-48da-a3d9-5cfd8132820b" data-widget-key="wk_ic-XMT21da6PK2nfBmNlUDBHcUWlVdA2" crossorigin="anonymous" async></script>
+</body>
+</html>

@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en" class="min-h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="dark light">
+    <title>EasyConnect Group CRM & Analytics</title>
+    <!-- Tailwind CSS v4 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js for Professional Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for Enterprise Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Tell mobile browsers (Android/Samsung "auto dark", iOS smart invert, etc.) that this
+           page already handles its own dark theme. Without this, some mobile browsers forcibly
+           re-theme content and form fields -- injecting a light/white background while the
+           page's own light text color stays as-is, which can make the login field and table
+           text effectively invisible (light text on a light box the browser added on top of
+           our dark background). */
+        html {
+            color-scheme: dark;
+        }
+
+        input, select, textarea, button {
+            color-scheme: dark;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input, select, textarea {
+            background-color: #020617 !important;
+            color: #ffffff !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #64748b !important;
+            opacity: 1;
+        }
+
+        /* iOS Safari auto-zooms the whole page on focus if an input's font-size is under 16px,
+           which is what makes layouts look "overlapping"/broken on mobile once the keyboard
+           opens. Forcing 16px on small screens stops the zoom. */
+        @media (max-width: 640px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        body {
+            -webkit-overflow-scrolling: touch;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* ==================== NEW: Sidebar / mobile nav / section switching ==================== */
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            white-space: nowrap;
+            padding: 0.65rem 0.9rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+        .nav-btn:hover {
+            background-color: #1e293b;
+            color: #e2e8f0;
+        }
+        .nav-btn.active {
+            background-color: rgba(99, 102, 241, 0.12);
+            border-color: rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+        }
+        .nav-btn-danger {
+            color: #fb7185;
+        }
+        .nav-btn-danger:hover {
+            background-color: rgba(244, 63, 94, 0.1);
+            color: #fb7185;
+        }
+        #mobile-nav .nav-btn {
+            width: auto;
+        }
+
+        /* ==================== NEW: Role badges (Managers section) ==================== */
+        .role-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background-color: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            font-family: monospace;
+        }
+
+        /* ==================== NEW: Shared modal styles (Add Customer / Add Manager / Send Money) ==================== */
+        .ec-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-y: auto;
+            /* Hidden by default. Deliberately NOT "display: flex" here: Tailwind's
+               "hidden" utility lives inside a CSS @layer, and un-layered rules (like
+               this plain <style> block) always beat layered rules regardless of
+               source order - so a bare "display: flex" here would have silently
+               overridden Tailwind's "hidden" class on this element every time,
+               making the modal visible immediately on page load no matter what.
+               Scoping the flex display to ":not(.hidden)" keeps both states defined
+               in this same un-layered stylesheet, so there's no cross-layer fight. */
+            display: none;
+        }
+        .ec-modal-overlay:not(.hidden) {
+            display: flex;
+        }
+        .ec-modal-card {
+            width: 100%;
+            max-width: 28rem;
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            margin: auto;
+        }
+    </style>
+</head>
+<body class="min-h-dvh text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 my-auto">
+            <div class="flex items-center gap-3">
+                <img src="logo.png" alt="EasyConnect Logo" class="h-24 w-24 object-contain rounded-lg bg-slate-800 p-1 border border-slate-700" onerror="this.src='https://placehold.co/40x40/indigo/white?text=EC'">
+                <div>
+                    <h2 class="text-xl font-bold text-white tracking-tight">EasyConnect Admin</h2>
+                    <p class="text-xs text-slate-400">Secure Enterprise Portal Access</p>
+                </div>
+            </div>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Master Password</label>
+                    <input type="password" id="password-input" placeholder="••••••••••••••••" required
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <p id="login-error" class="text-xs text-rose-400 hidden font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> Invalid master key. Try again.</p>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-indigo-600/20 text-sm">
+                    Authenticate Session
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN DASHBOARD LAYOUT ==================== -->
+    <div id="dashboard-content" class="min-h-dvh flex flex-col hidden">
+        
+        <!-- Top Navbar -->
+        <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-30 px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="Logo" class="h-24 w-24 object-contain rounded-lg bg-slate-800 p-1 border border-slate-700" onerror="this.src='https://placehold.co/36x36/indigo/white?text=EC'">
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
+                        EasyConnect Group <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono">V2.0</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <button onclick="loadCRMData()" class="flex-1 sm:flex-none justify-center bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-semibold border border-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> Sync Live Data
+                </button>
+                <button onclick="logout()" class="flex-1 sm:flex-none justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2">
+                    <i class="fa-solid fa-lock"></i> Lock
+                </button>
+            </div>
+        </header>
+
+        <!-- ==================== NEW: Mobile top nav (shown below the lg breakpoint) ==================== -->
+        <nav id="mobile-nav" class="lg:hidden flex items-center gap-2 overflow-x-auto bg-slate-900/60 border-b border-slate-800 px-3 py-2 sticky top-0 z-20">
+            <button type="button" class="nav-btn" data-section="profile" onclick="showSection('profile')"><i class="fa-solid fa-user"></i> Profile</button>
+            <button type="button" class="nav-btn active" data-section="customers" onclick="showSection('customers')"><i class="fa-solid fa-users"></i> Customers</button>
+            <button type="button" class="nav-btn" data-section="managers" onclick="showSection('managers')"><i class="fa-solid fa-user-tie"></i> Managers</button>
+            <button type="button" class="nav-btn" data-section="settings" onclick="showSection('settings')"><i class="fa-solid fa-gear"></i> Settings</button>
+            <button type="button" class="nav-btn nav-btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        </nav>
+
+        <div class="flex flex-1 w-full min-h-0">
+
+            <!-- ==================== NEW: Desktop vertical sidebar ==================== -->
+            <aside id="sidebar-nav" class="hidden lg:flex lg:flex-col lg:w-60 shrink-0 bg-slate-900/60 border-r border-slate-800 p-4 space-y-1">
+                <button type="button" class="nav-btn" data-section="profile" onclick="showSection('profile')"><i class="fa-solid fa-user w-4"></i> Profile</button>
+                <button type="button" class="nav-btn active" data-section="customers" onclick="showSection('customers')"><i class="fa-solid fa-users w-4"></i> Customers</button>
+                <button type="button" class="nav-btn" data-section="managers" onclick="showSection('managers')"><i class="fa-solid fa-user-tie w-4"></i> Managers</button>
+                <button type="button" class="nav-btn" data-section="settings" onclick="showSection('settings')"><i class="fa-solid fa-gear w-4"></i> Settings</button>
+                <div class="pt-3 mt-3 border-t border-slate-800">
+                    <button type="button" class="nav-btn nav-btn-danger" onclick="logout()"><i class="fa-solid fa-right-from-bracket w-4"></i> Logout</button>
+                </div>
+            </aside>
+
+            <div class="flex-1 min-w-0 flex flex-col">
+
+                <!-- ==================== NEW: PROFILE SECTION ==================== -->
+                <section id="section-profile" class="hidden flex-1 max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                        <div class="flex items-center gap-4">
+                            <div id="profile-avatar" class="h-16 w-16 rounded-2xl bg-indigo-600/20 text-indigo-400 font-bold flex items-center justify-center text-xl">AD</div>
+                            <div>
+                                <h2 id="profile-display-name" class="text-lg font-bold text-white">Administrator</h2>
+                                <p class="text-xs text-slate-400">Enterprise Portal Administrator</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Display Name</label>
+                                <input type="text" id="profile-name-input" placeholder="Administrator" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Contact Email</label>
+                                <input type="email" id="profile-email-input" placeholder="admin@easyconnect.example" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+
+                        <p id="profile-saved-msg" class="text-xs text-emerald-400 hidden font-medium">Profile saved.</p>
+
+                        <button onclick="saveProfile()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition">
+                            Save Profile
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ==================== CUSTOMERS SECTION (existing dashboard content lives here, unchanged) ==================== -->
+                <section id="section-customers" class="flex-1">
+                    <!-- Main Body Area -->
+                    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+                        <!-- Metrics Grid -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue</p>
+                                        <p id="metric-revenue" class="text-2xl font-black text-white mt-1">₦0.00</p>
+                                    </div>
+                                    <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20"><i class="fa-solid fa-wallet text-lg"></i></div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-1.5 text-xs text-emerald-400 font-medium"><i class="fa-solid fa-arrow-trend-up"></i> Live Paystack Stream</div>
+                            </div>
+
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Registered Customers</p>
+                                        <p id="metric-customers" class="text-2xl font-black text-white mt-1">0</p>
+                                    </div>
+                                    <div class="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20"><i class="fa-solid fa-users text-lg"></i></div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-1.5 text-xs text-blue-400 font-medium"><i class="fa-solid fa-address-book"></i> Active Profiles</div>
+                            </div>
+
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Successful Txs</p>
+                                        <p id="metric-txs" class="text-2xl font-black text-emerald-400 mt-1">0</p>
+                                    </div>
+                                    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20"><i class="fa-solid fa-circle-check text-lg"></i></div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-1.5 text-xs text-slate-400 font-medium">Verified Gateway Events</div>
+                            </div>
+
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Assigned Managers</p>
+                                        <p id="metric-managers" class="text-2xl font-black text-purple-400 mt-1">3 Active</p>
+                                    </div>
+                                    <div class="p-3 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20"><i class="fa-solid fa-user-tie text-lg"></i></div>
+                                </div>
+                                <div class="mt-3 flex items-center gap-1.5 text-xs text-purple-400 font-medium">Staff Coverage Active</div>
+                            </div>
+                        </div>
+
+                        <!-- Analytics Charts Grid -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Revenue Bar Chart -->
+                            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h2 class="font-bold text-sm text-white uppercase tracking-wider">Transaction Volume & Revenue</h2>
+                                    <span class="text-xs text-slate-400">Real-time aggregation</span>
+                                </div>
+                                <div class="relative flex-1 min-h-[260px]">
+                                    <canvas id="revenueChart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- Manager Assignment Panel -->
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                                <div>
+                                    <h2 class="font-bold text-sm text-white uppercase tracking-wider mb-4">Manager Assignments</h2>
+                                    <p class="text-xs text-slate-400 mb-4">Assign dedicated account managers to oversee high-value customer accounts and support pipelines.</p>
+                                    
+                                    <div class="space-y-3">
+                                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold flex items-center justify-center text-xs">OB</div>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-white">Okoro Benjamin</p>
+                                                    <p class="text-[10px] text-slate-400">CEO</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-mono">Assigned</span>
+                                        </div>
+
+                                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                                            <div class="flex items-center gap-3">
+                                                <div class="h-8 w-8 rounded-lg bg-purple-600/20 text-purple-400 font-bold flex items-center justify-center text-xs">RE</div>
+                                                <div>
+                                                    <p class="text-xs font-semibold text-white">Chidinma I</p>
+                                                    <p class="text-[10px] text-slate-400">Customer Success Representative</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-mono">Assigned</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onclick="openManagerModal()" class="w-full mt-4 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 py-2.5 rounded-xl text-xs font-semibold transition">
+                                    <i class="fa-solid fa-user-plus mr-1"></i> Assign New Manager
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Customer Directory Table -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                            <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div>
+                                    <h2 class="font-bold text-sm text-white uppercase tracking-wider">Customer Directory</h2>
+                                    <p class="text-xs text-slate-400 mt-0.5">Click any record for deep analytics and profile details.</p>
+                                </div>
+                                <!-- NEW: wrapped the existing search box with an Add Customer button alongside it -->
+                                <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
+                                    <input type="text" id="search-box" placeholder="Search customer name or email..." onkeyup="filterTable()" 
+                                        class="w-full sm:w-72 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                                    <button type="button" onclick="openAddCustomerModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap">
+                                        <i class="fa-solid fa-user-plus mr-1"></i> Add Customer
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-950/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
+                                            <th class="p-4">Customer Name</th>
+                                            <th class="p-4">Email Address</th>
+                                            <th class="p-4">Phone Number</th>
+                                            <th class="p-4">Customer Code</th>
+                                            <th class="p-4">Assigned Manager</th>
+                                            <th class="p-4">Joined Date</th>
+                                            <th class="p-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="customer-table-body" class="divide-y divide-slate-800/60">
+                                        <tr><td colspan="7" class="p-8 text-center text-slate-500">Synchronizing records with Paystack gateway...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </main>
+                </section>
+
+                <!-- ==================== NEW: MANAGERS SECTION ==================== -->
+                <section id="section-managers" class="hidden flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider">Managers</h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Add admin managers, assign a role, or send them a payout.</p>
+                        </div>
+                        <button type="button" onclick="openAddManagerModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition whitespace-nowrap">
+                            <i class="fa-solid fa-user-plus mr-1"></i> Add Manager
+                        </button>
+                    </div>
+
+                    <div id="managers-list" class="space-y-3">
+                        <p class="text-xs text-slate-500">Loading managers...</p>
+                    </div>
+                </section>
+
+                <!-- ==================== NEW: SETTINGS SECTION ==================== -->
+                <section id="section-settings" class="hidden flex-1 max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+                        <h2 class="font-bold text-sm text-white uppercase tracking-wider">Settings</h2>
+
+                        <label class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl p-4">
+                            <span class="text-xs text-slate-300">Email me a summary of daily transactions</span>
+                            <input type="checkbox" id="settings-notify-toggle" class="h-4 w-4 accent-indigo-500">
+                        </label>
+
+                        <p id="settings-saved-msg" class="text-xs text-emerald-400 hidden font-medium">Settings saved.</p>
+
+                        <button onclick="saveSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition">
+                            Save Settings
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-rose-500/20 rounded-2xl p-6 space-y-3">
+                        <h2 class="font-bold text-sm text-rose-400 uppercase tracking-wider">Danger Zone</h2>
+                        <p class="text-xs text-slate-400">Clear locally saved customer-to-manager assignments on this device. Customer and transaction records are not affected.</p>
+                        <button onclick="clearManagerAssignments()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold px-5 py-2.5 rounded-xl text-xs transition">
+                            Clear Manager Assignments
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CUSTOMER SIDE-VIEW DRAWER ==================== -->
+    <div id="customer-drawer" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex justify-end">
+        <div class="w-full max-w-xl bg-slate-900 border-l border-slate-800 h-full p-5 sm:p-6 flex flex-col justify-between overflow-y-auto shadow-2xl">
+            <div class="space-y-6">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 id="drawer-name" class="text-lg font-bold text-white">Customer Profile</h2>
+                        <p id="drawer-code" class="text-xs font-mono text-indigo-400">CUS_xxxxxxx</p>
+                    </div>
+                    <button onclick="closeDrawer()" class="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition shrink-0">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Customer Details Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-semibold text-slate-500">Email Address</p>
+                        <p id="drawer-email" class="text-xs font-medium text-slate-200 mt-1 truncate">-</p>
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-semibold text-slate-500">Phone Number</p>
+                        <p id="drawer-phone" class="text-xs font-medium text-slate-200 mt-1">-</p>
+                    </div>
+                </div>
+
+                <!-- Manager Assignment Override -->
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Assigned Account Manager</label>
+                    <select id="drawer-manager-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="Okoro Benjamin">Okoro Benjamin (CEO)</option>
+                        <option value="Okoro Benjamin">Chidinma I (CSR)</option>
+                        <option value="Unassigned">Unassigned</option>
+                    </select>
+                    <button onclick="saveCustomerManager()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg text-xs transition">
+                        Update Assignment
+                    </button>
+                </div>
+
+                <!-- NEW: Send Money / Delete Customer actions -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="openSendMoneyModal('customer', selectedCustomerCode)" class="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold py-2 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-money-bill-transfer mr-1"></i> Send Money
+                    </button>
+                    <button onclick="deleteCustomer(selectedCustomerCode)" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold py-2 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-trash mr-1"></i> Delete Customer
+                    </button>
+                </div>
+
+                <!-- Recent Transactions for Customer -->
+                <div>
+                    <h3 class="font-bold text-xs text-white uppercase tracking-wider mb-3">Customer Transaction History</h3>
+                    <div id="drawer-tx-list" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-xs text-slate-500">No recent transactions recorded.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <span class="text-[10px] text-slate-500">Secure Gateway Profile View</span>
+                <button onclick="closeDrawer()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition">Close Drawer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== NEW: ADD CUSTOMER MODAL ==================== -->
+    <div id="add-customer-modal" class="ec-modal-overlay hidden">
+        <div class="ec-modal-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-white">Add New Customer</h3>
+                <button onclick="closeAddCustomerModal()" class="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">First Name</label>
+                        <input type="text" id="new-cust-firstname" placeholder="John" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Last Name</label>
+                        <input type="text" id="new-cust-lastname" placeholder="Doe" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+                    <input type="email" id="new-cust-email" placeholder="name@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Phone Number</label>
+                    <input type="tel" id="new-cust-phone" placeholder="08012345678" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <p id="new-customer-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <button id="save-customer-btn" onclick="saveNewCustomer()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">
+                    Save Customer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== NEW: ADD MANAGER MODAL ==================== -->
+    <div id="add-manager-modal" class="ec-modal-overlay hidden">
+        <div class="ec-modal-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-white">Add New Manager</h3>
+                <button onclick="closeAddManagerModal()" class="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Full Name</label>
+                    <input type="text" id="new-manager-name" placeholder="Jane Doe" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
+                    <input type="email" id="new-manager-email" placeholder="jane@easyconnect.example" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Role</label>
+                    <select id="new-manager-role" onchange="updateRoleDescription()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition"></select>
+                    <p id="role-desc" class="text-[10px] text-slate-500 mt-1.5 leading-relaxed"></p>
+                </div>
+                <p id="new-manager-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <button onclick="saveNewManager()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">
+                    Save Manager
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== NEW: SEND MONEY MODAL (customers & managers) ==================== -->
+    <div id="send-money-modal" class="ec-modal-overlay hidden">
+        <div class="ec-modal-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-bold text-white">Send Money</h3>
+                <button onclick="closeSendMoneyModal()" class="h-8 w-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                    <p class="text-[10px] uppercase font-semibold text-slate-500">Recipient</p>
+                    <p id="send-money-recipient" class="text-xs font-semibold text-white mt-1">-</p>
+                </div>
+                <!-- NEW: Paystack can only transfer to a real bank account, not an email -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Bank Code</label>
+                        <input type="text" id="send-money-bank-code" placeholder="e.g. 058" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Account Number</label>
+                        <input type="text" id="send-money-account-number" placeholder="0123456789" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Account Name (optional)</label>
+                    <input type="text" id="send-money-account-name" placeholder="Defaults to recipient name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Amount (₦)</label>
+                    <input type="number" id="send-money-amount" min="1" placeholder="5000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Note (optional)</label>
+                    <input type="text" id="send-money-note" placeholder="Refund, bonus, etc." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <p id="send-money-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <p id="send-money-success" class="text-xs text-emerald-400 hidden font-medium"></p>
+                <button id="send-money-confirm-btn" onclick="confirmSendMoney()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">
+                    Send Money
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+    <script>
+        let globalCustomers = [];
+        let globalTransactions = [];
+        let revenueChartInstance = null;
+        let selectedCustomerCode = null;
+
+        // Session Check
+        if (sessionStorage.getItem('easyconnect_enterprise_auth') === 'true') {
+            showDashboard();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('password-input').value;
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/verify-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const data = await res.json();
+
+                if (data.status) {
+                    sessionStorage.setItem('easyconnect_enterprise_auth', 'true');
+                    // NEW: re-sent as the "x-admin-password" header on every
+                    // create/delete/send-money request - see adminHeaders() below
+                    // and /api/_lib/requireAdmin.js for why this is necessary.
+                    sessionStorage.setItem('easyconnect_admin_key', password);
+                    showDashboard();
+                } else {
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorEl.innerText = 'Connection error with Vercel serverless function.';
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            loadCRMData();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('easyconnect_enterprise_auth');
+            location.reload();
+        }
+
+        async function loadCRMData() {
+            try {
+                const res = await fetch('/api/get-customers');
+                const result = await res.json();
+                if (!result.status) throw new Error(result.message);
+
+                globalCustomers = result.customers || [];
+                globalTransactions = result.transactions || [];
+
+                // Update Metrics
+                document.getElementById('metric-customers').innerText = globalCustomers.length;
+                const successfulTxs = globalTransactions.filter(t => t.status === 'success');
+                document.getElementById('metric-txs').innerText = successfulTxs.length;
+
+                const totalRevenue = successfulTxs.reduce((sum, t) => sum + (t.amount / 100), 0);
+                document.getElementById('metric-revenue').innerText = `₦${totalRevenue.toLocaleString()}`;
+
+                renderTable(globalCustomers);
+                renderChart(globalTransactions);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('customer-table-body').innerHTML = `<tr><td colspan="7" class="p-8 text-center text-rose-400">Failed to pull gateway data. Verify Paystack environment keys.</td></tr>`;
+            }
+        }
+
+        function renderTable(customers) {
+            const tbody = document.getElementById('customer-table-body');
+            if (customers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-500">No customer records found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = customers.map(c => {
+                const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed Client';
+                const assignedManager = localStorage.getItem(`mgr_${c.customer_code}`) || 'Okoro Benjamin';
+
+                return `
+                    <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${c.customer_code}')">
+                        <td class="p-4 font-semibold text-white">${fullName}</td>
+                        <td class="p-4 text-slate-300">${c.email}</td>
+                        <td class="p-4 text-slate-400">${c.phone || 'N/A'}</td>
+                        <td class="p-4 font-mono text-indigo-400">${c.customer_code}</td>
+                        <td class="p-4"><span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">${assignedManager}</span></td>
+                        <td class="p-4 text-slate-400">${new Date(c.createdAt).toLocaleDateString()}</td>
+                        <td class="p-4 text-right" onclick="event.stopPropagation()">
+                            <div class="flex justify-end gap-2 flex-wrap">
+                                <button onclick="openDrawer('${c.customer_code}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition">
+                                    View Profile
+                                </button>
+                                <button onclick="openSendMoneyModal('customer', '${c.customer_code}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Send Money">
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
+                                </button>
+                                <button onclick="deleteCustomer('${c.customer_code}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Delete Customer">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderChart(transactions) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            // Group transactions by date
+            const dateMap = {};
+            transactions.forEach(t => {
+                if(t.status === 'success') {
+                    const date = new Date(t.createdAt).toLocaleDateString();
+                    dateMap[date] = (dateMap[date] || 0) + (t.amount / 100);
+                }
+            });
+
+            const labels = Object.keys(dateMap).slice(-7);
+            const data = labels.map(l => dateMap[l]);
+
+            if (revenueChartInstance) revenueChartInstance.destroy();
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['No Data'],
+                    datasets: [{
+                        label: 'Daily Revenue (₦)',
+                        data: data.length > 0 ? data : [0],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        barThickness: 24
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function openDrawer(customerCode) {
+            selectedCustomerCode = customerCode;
+            const customer = globalCustomers.find(c => c.customer_code === customerCode);
+            if (!customer) return;
+
+            document.getElementById('drawer-name').innerText = `${customer.first_name || ''} ${customer.last_name || ''}` || 'Client Profile';
+            document.getElementById('drawer-code').innerText = customer.customer_code;
+            document.getElementById('drawer-email').innerText = customer.email;
+            document.getElementById('drawer-phone').innerText = customer.phone || 'Not Provided';
+
+            const currentMgr = localStorage.getItem(`mgr_${customer.customer_code}`) || 'Okoro Benjamin';
+            document.getElementById('drawer-manager-select').value = currentMgr;
+
+            // Filter transactions for this customer email
+            const customerTxs = globalTransactions.filter(t => t.customer && t.customer.email === customer.email);
+            const txListEl = document.getElementById('drawer-tx-list');
+            
+            if (customerTxs.length === 0) {
+                txListEl.innerHTML = `<p class="text-xs text-slate-500">No payment records linked to this email.</p>`;
+            } else {
+                txListEl.innerHTML = customerTxs.map(t => `
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                        <div>
+                            <p class="font-bold text-white">₦${(t.amount/100).toLocaleString()}</p>
+                            <p class="text-[10px] text-slate-500">${new Date(t.createdAt).toLocaleString()}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-mono ${t.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">${t.status}</span>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('customer-drawer').classList.remove('hidden');
+        }
+
+        function closeDrawer() {
+            document.getElementById('customer-drawer').classList.add('hidden');
+            selectedCustomerCode = null;
+        }
+
+        function saveCustomerManager() {
+            if (!selectedCustomerCode) return;
+            const selectedMgr = document.getElementById('drawer-manager-select').value;
+            localStorage.setItem(`mgr_${selectedCustomerCode}`, selectedMgr);
+            alert(`Successfully assigned manager to customer.`);
+            closeDrawer();
+            renderTable(globalCustomers);
+        }
+
+        function openManagerModal() {
+            alert("Enterprise Manager Assignment: Use individual customer drawer profiles to assign specific account managers.");
+        }
+
+        function filterTable() {
+            const query = document.getElementById('search-box').value.toLowerCase();
+            const filtered = globalCustomers.filter(c => {
+                const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
+                return name.includes(query) || c.email.toLowerCase().includes(query);
+            });
+            renderTable(filtered);
+        }
+
+        // ==================== NEW FEATURE: Shared admin auth header ====================
+        // Attached to every create/delete/send-money request so /api/_lib/requireAdmin.js
+        // can verify the caller is actually logged in, instead of those endpoints being
+        // reachable by anyone who finds the URL.
+        function adminHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'x-admin-password': sessionStorage.getItem('easyconnect_admin_key') || ''
+            };
+        }
+
+        // ==================== NEW FEATURE: Sidebar navigation between Profile / Customers / Managers / Settings ====================
+        function showSection(name) {
+            ['profile', 'customers', 'managers', 'settings'].forEach(function (key) {
+                var el = document.getElementById('section-' + key);
+                if (el) {
+                    if (key === name) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+
+            document.querySelectorAll('.nav-btn[data-section]').forEach(function (btn) {
+                if (btn.getAttribute('data-section') === name) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (name === 'managers') {
+                renderManagersList();
+            }
+            if (name === 'profile') {
+                loadProfileSection();
+            }
+            if (name === 'settings') {
+                loadSettingsSection();
+            }
+        }
+
+        // ==================== NEW FEATURE: Manager roles & duties ====================
+        var MANAGER_ROLES = [
+            { value: 'Super Admin', duty: 'Full system access - manages all managers, customers, and settings.' },
+            { value: 'Lead Enterprise Manager', duty: 'Oversees high-value enterprise accounts and manager assignments.' },
+            { value: 'Customer Success Representative', duty: 'Handles day-to-day customer support and onboarding.' },
+            { value: 'Finance Officer', duty: 'Manages disbursements, reconciliations, and payment approvals.' },
+            { value: 'Compliance Officer', duty: 'Reviews transactions for compliance and fraud checks.' },
+            { value: 'Support Agent', duty: 'Frontline support for customer inquiries and issue resolution.' }
+        ];
+
+        function getManagers() {
+            try {
+                var raw = localStorage.getItem('ec_managers');
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            // Seed with the two managers already shown in the existing Manager Assignment panel
+            var seeded = [
+                { id: 'mgr_okoro', name: 'Okoro Benjamin', email: '', role: 'Super Admin' },
+                { id: 'mgr_chidinma', name: 'Chidinma I', email: '', role: 'Customer Success Representative' }
+            ];
+            localStorage.setItem('ec_managers', JSON.stringify(seeded));
+            return seeded;
+        }
+
+        function saveManagers(list) {
+            localStorage.setItem('ec_managers', JSON.stringify(list));
+        }
+
+        function renderManagersList() {
+            var wrap = document.getElementById('managers-list');
+            if (!wrap) return;
+            var managers = getManagers();
+
+            if (managers.length === 0) {
+                wrap.innerHTML = '<p class="text-xs text-slate-500">No managers added yet.</p>';
+                return;
+            }
+
+            wrap.innerHTML = managers.map(function (m) {
+                var initials = (m.name || '?').split(' ').map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase();
+                return '' +
+                    '<div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">' +
+                        '<div class="flex items-center gap-3 min-w-0">' +
+                            '<div class="h-10 w-10 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold flex items-center justify-center text-xs">' + initials + '</div>' +
+                            '<div class="min-w-0">' +
+                                '<p class="text-xs font-semibold text-white truncate">' + m.name + '</p>' +
+                                '<p class="text-[10px] text-slate-400 truncate">' + (m.email || 'No email on file') + '</p>' +
+                                '<span class="role-badge mt-1 inline-block">' + m.role + '</span>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center gap-2 shrink-0">' +
+                            '<button onclick="openSendMoneyModal(\'manager\', \'' + m.id + '\')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-money-bill-transfer mr-1"></i>Send Money</button>' +
+                            '<button onclick="deleteManager(\'' + m.id + '\')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition"><i class="fa-solid fa-trash"></i></button>' +
+                        '</div>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function syncManagerSelectOptions() {
+            var select = document.getElementById('drawer-manager-select');
+            if (!select) return;
+            var managers = getManagers();
+            var current = select.value;
+            select.innerHTML = managers.map(function (m) {
+                return '<option value="' + m.name + '">' + m.name + ' (' + m.role + ')</option>';
+            }).join('') + '<option value="Unassigned">Unassigned</option>';
+            if (current) select.value = current;
+        }
+
+        function openAddManagerModal() {
+            var roleSelect = document.getElementById('new-manager-role');
+            if (roleSelect && roleSelect.options.length === 0) {
+                roleSelect.innerHTML = MANAGER_ROLES.map(function (r) {
+                    return '<option value="' + r.value + '">' + r.value + '</option>';
+                }).join('');
+            }
+            updateRoleDescription();
+            document.getElementById('add-manager-modal').classList.remove('hidden');
+        }
+
+        function closeAddManagerModal() {
+            document.getElementById('add-manager-modal').classList.add('hidden');
+            document.getElementById('new-manager-name').value = '';
+            document.getElementById('new-manager-email').value = '';
+        }
+
+        function updateRoleDescription() {
+            var roleSelect = document.getElementById('new-manager-role');
+            var descEl = document.getElementById('role-desc');
+            if (!roleSelect || !descEl) return;
+            var found = MANAGER_ROLES.find(function (r) { return r.value === roleSelect.value; });
+            descEl.innerText = found ? found.duty : '';
+        }
+
+        function saveNewManager() {
+            var name = document.getElementById('new-manager-name').value.trim();
+            var email = document.getElementById('new-manager-email').value.trim();
+            var role = document.getElementById('new-manager-role').value;
+            var errEl = document.getElementById('new-manager-error');
+
+            if (!name || !role) {
+                errEl.innerText = 'Name and role are required.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            errEl.classList.add('hidden');
+
+            var managers = getManagers();
+            managers.push({
+                id: 'mgr_' + Date.now(),
+                name: name,
+                email: email,
+                role: role
+            });
+            saveManagers(managers);
+            renderManagersList();
+            syncManagerSelectOptions();
+            closeAddManagerModal();
+        }
+
+        function deleteManager(id) {
+            if (!confirm('Remove this manager? This cannot be undone.')) return;
+            var managers = getManagers().filter(function (m) { return m.id !== id; });
+            saveManagers(managers);
+            renderManagersList();
+            syncManagerSelectOptions();
+        }
+
+        // ==================== NEW FEATURE: Add / Delete customers directly ====================
+        function openAddCustomerModal() {
+            document.getElementById('add-customer-modal').classList.remove('hidden');
+        }
+
+        function closeAddCustomerModal() {
+            document.getElementById('add-customer-modal').classList.add('hidden');
+            ['new-cust-firstname', 'new-cust-lastname', 'new-cust-email', 'new-cust-phone'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            var errEl = document.getElementById('new-customer-error');
+            if (errEl) errEl.classList.add('hidden');
+        }
+
+        async function saveNewCustomer() {
+            var firstName = document.getElementById('new-cust-firstname').value.trim();
+            var lastName = document.getElementById('new-cust-lastname').value.trim();
+            var email = document.getElementById('new-cust-email').value.trim();
+            var phone = document.getElementById('new-cust-phone').value.trim();
+            var errEl = document.getElementById('new-customer-error');
+
+            if (!firstName || !email) {
+                errEl.innerText = 'First name and email are required.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            errEl.classList.add('hidden');
+
+            var saveBtn = document.getElementById('save-customer-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = 'Saving...';
+
+            try {
+                var res = await fetch('/api/create-customer', {
+                    method: 'POST',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email, phone: phone })
+                });
+                var result = await res.json();
+
+                if (!res.ok || !result.status) {
+                    throw new Error(result.message || 'Failed to create customer.');
+                }
+
+                // Use the REAL customer returned by Paystack (via create-customer.js),
+                // not a locally invented code - later delete/send-money actions on this
+                // row need the genuine customer_code to work.
+                globalCustomers.unshift(result.customer);
+                renderTable(globalCustomers);
+                document.getElementById('metric-customers').innerText = globalCustomers.length;
+                closeAddCustomerModal();
+            } catch (e) {
+                errEl.innerText = e.message || 'Failed to create customer.';
+                errEl.classList.remove('hidden');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = 'Save Customer';
+            }
+        }
+
+        async function deleteCustomer(customerCode) {
+            if (!customerCode) return;
+            if (!confirm('Delete this customer? This cannot be undone.')) return;
+
+            // Attempt to persist server-side if an endpoint exists; the row is removed from
+            // the local view regardless so the admin isn't blocked by a missing backend.
+            // Wire up a real "/api/delete-customer" serverless function to make this permanent.
+            try {
+                var res = await fetch('/api/delete-customer', {
+                    method: 'DELETE',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ customer_code: customerCode })
+                });
+                var result = await res.json();
+                if (!res.ok || !result.status) {
+                    alert(result.message || 'Failed to delete customer on the server. It will still be hidden locally for this session.');
+                }
+            } catch (e) {
+                console.log('Notice: delete-customer request failed, removed locally only.', e);
+            }
+
+            globalCustomers = globalCustomers.filter(function (c) { return c.customer_code !== customerCode; });
+            renderTable(globalCustomers);
+            document.getElementById('metric-customers').innerText = globalCustomers.length;
+
+            if (selectedCustomerCode === customerCode) {
+                closeDrawer();
+            }
+        }
+
+        // ==================== NEW FEATURE: Send money to a customer or a manager ====================
+        var sendMoneyTarget = null;
+
+        function openSendMoneyModal(type, id) {
+            if (!id) return;
+            var name = '';
+            if (type === 'customer') {
+                var c = globalCustomers.find(function (x) { return x.customer_code === id; });
+                name = c ? (((c.first_name || '') + ' ' + (c.last_name || '')).trim() || c.email) : id;
+            } else {
+                var m = getManagers().find(function (x) { return x.id === id; });
+                name = m ? m.name : id;
+            }
+            sendMoneyTarget = { type: type, id: id, name: name };
+
+            document.getElementById('send-money-recipient').innerText = name + ' (' + (type === 'customer' ? 'Customer' : 'Manager') + ')';
+            document.getElementById('send-money-amount').value = '';
+            document.getElementById('send-money-note').value = '';
+            document.getElementById('send-money-bank-code').value = '';
+            document.getElementById('send-money-account-number').value = '';
+            document.getElementById('send-money-account-name').value = '';
+            document.getElementById('send-money-error').classList.add('hidden');
+            document.getElementById('send-money-success').classList.add('hidden');
+            document.getElementById('send-money-modal').classList.remove('hidden');
+        }
+
+        function closeSendMoneyModal() {
+            document.getElementById('send-money-modal').classList.add('hidden');
+            sendMoneyTarget = null;
+        }
+
+        async function confirmSendMoney() {
+            var amount = parseFloat(document.getElementById('send-money-amount').value);
+            var note = document.getElementById('send-money-note').value.trim();
+            var bankCode = document.getElementById('send-money-bank-code').value.trim();
+            var accountNumber = document.getElementById('send-money-account-number').value.trim();
+            var accountName = document.getElementById('send-money-account-name').value.trim();
+            var errEl = document.getElementById('send-money-error');
+            var succEl = document.getElementById('send-money-success');
+
+            if (!sendMoneyTarget || !amount || amount <= 0) {
+                errEl.innerText = 'Enter a valid amount greater than zero.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            if (!bankCode || !accountNumber) {
+                errEl.innerText = 'Bank code and account number are required to send money.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            errEl.classList.add('hidden');
+            succEl.classList.add('hidden');
+
+            var btn = document.getElementById('send-money-confirm-btn');
+            btn.disabled = true;
+            btn.innerText = 'Sending...';
+
+            try {
+                var res = await fetch('/api/send-money', {
+                    method: 'POST',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        recipient_type: sendMoneyTarget.type,
+                        recipient_id: sendMoneyTarget.id,
+                        recipient_name: sendMoneyTarget.name,
+                        amount: amount,
+                        note: note,
+                        bank_code: bankCode,
+                        account_number: accountNumber,
+                        account_name: accountName || undefined
+                    })
+                });
+                var result = await res.json();
+
+                if (!res.ok || !result.status) {
+                    throw new Error(result.message || 'Transfer failed.');
+                }
+
+                succEl.innerText = result.message || ('Transfer of ₦' + amount.toLocaleString() + ' to ' + sendMoneyTarget.name + ' was submitted.');
+                succEl.classList.remove('hidden');
+                setTimeout(closeSendMoneyModal, 1800);
+            } catch (e) {
+                errEl.innerText = e.message || 'Transfer failed.';
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Send Money';
+            }
+        }
+
+        // ==================== NEW FEATURE: Profile section ====================
+        function loadProfileSection() {
+            var name = localStorage.getItem('ec_admin_name') || 'Administrator';
+            var email = localStorage.getItem('ec_admin_email') || '';
+            document.getElementById('profile-name-input').value = name;
+            document.getElementById('profile-email-input').value = email;
+            document.getElementById('profile-display-name').innerText = name;
+            var initials = name.split(' ').map(function (p) { return p[0]; }).join('').slice(0, 2).toUpperCase();
+            document.getElementById('profile-avatar').innerText = initials || 'AD';
+        }
+
+        function saveProfile() {
+            var name = document.getElementById('profile-name-input').value.trim() || 'Administrator';
+            var email = document.getElementById('profile-email-input').value.trim();
+            localStorage.setItem('ec_admin_name', name);
+            localStorage.setItem('ec_admin_email', email);
+            loadProfileSection();
+            var successEl = document.getElementById('profile-saved-msg');
+            successEl.classList.remove('hidden');
+            setTimeout(function () { successEl.classList.add('hidden'); }, 2000);
+        }
+
+        // ==================== NEW FEATURE: Settings section ====================
+        function loadSettingsSection() {
+            var notifyEnabled = localStorage.getItem('ec_notify_enabled') !== 'false';
+            document.getElementById('settings-notify-toggle').checked = notifyEnabled;
+        }
+
+        function saveSettings() {
+            var notifyEnabled = document.getElementById('settings-notify-toggle').checked;
+            localStorage.setItem('ec_notify_enabled', notifyEnabled ? 'true' : 'false');
+            var successEl = document.getElementById('settings-saved-msg');
+            successEl.classList.remove('hidden');
+            setTimeout(function () { successEl.classList.add('hidden'); }, 2000);
+        }
+
+        function clearManagerAssignments() {
+            if (!confirm('Clear all locally saved customer-manager assignments? This cannot be undone.')) return;
+            Object.keys(localStorage).forEach(function (key) {
+                if (key.indexOf('mgr_') === 0) localStorage.removeItem(key);
+            });
+            renderTable(globalCustomers);
+            alert('Manager assignments cleared.');
+        }
+
+        // Initialize the new panels as soon as the script runs. This is safe even before
+        // login: the elements simply stay hidden behind the login screen until
+        // showDashboard() reveals #dashboard-content.
+        renderManagersList();
+        syncManagerSelectOptions();
+    </script>
+</body>
+</html>
