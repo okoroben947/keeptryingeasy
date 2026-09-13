@@ -448,15 +448,38 @@
                 </div>
 
                 <!-- Customer Details Grid -->
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">Customer Details</h3>
+                    <button type="button" id="drawer-edit-btn" onclick="enterCustomerEditMode()" class="cursor-pointer text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition">
+                        Edit
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-semibold text-slate-500">First Name</p>
+                        <input type="text" id="drawer-firstname" disabled class="w-full bg-transparent text-xs font-medium text-slate-200 mt-1 focus:outline-none disabled:opacity-100">
+                    </div>
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <p class="text-[10px] uppercase font-semibold text-slate-500">Last Name</p>
+                        <input type="text" id="drawer-lastname" disabled class="w-full bg-transparent text-xs font-medium text-slate-200 mt-1 focus:outline-none disabled:opacity-100">
+                    </div>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
                         <p class="text-[10px] uppercase font-semibold text-slate-500">Email Address</p>
                         <p id="drawer-email" class="text-xs font-medium text-slate-200 mt-1 truncate">-</p>
                     </div>
                     <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
                         <p class="text-[10px] uppercase font-semibold text-slate-500">Phone Number</p>
-                        <p id="drawer-phone" class="text-xs font-medium text-slate-200 mt-1">-</p>
+                        <input type="text" id="drawer-phone" disabled class="w-full bg-transparent text-xs font-medium text-slate-200 mt-1 focus:outline-none disabled:opacity-100">
                     </div>
+                </div>
+                <p id="drawer-edit-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <div id="drawer-edit-actions" class="hidden gap-3">
+                    <button type="button" onclick="saveCustomerEdit()" class="cursor-pointer flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 rounded-lg text-xs transition">
+                        Save Changes
+                    </button>
+                    <button type="button" onclick="cancelCustomerEdit()" class="cursor-pointer flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-2 rounded-lg text-xs transition">
+                        Cancel
+                    </button>
                 </div>
 
                 <!-- Manager Assignment Override -->
@@ -612,6 +635,24 @@
         let revenueChartInstance = null;
         let selectedCustomerCode = null;
 
+        // Wraps res.json() with a clear error when the server didn't actually
+        // return JSON -- almost always means the request hit a 404/500 HTML
+        // error page instead of a real serverless function. This is what was
+        // showing as the cryptic "Unexpected token 'T'... is not valid JSON"
+        // error: "T" is the start of "The page could not be found".
+        async function safeJson(res) {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error(
+                    `Server did not return valid data (HTTP ${res.status}). This usually means the ` +
+                    `API file isn't deployed yet, or this page is open on a local/preview URL that has ` +
+                    `no backend -- open it from your real Vercel deployment URL instead.`
+                );
+            }
+        }
+
         // Session Check
         if (sessionStorage.getItem('easyconnect_enterprise_auth') === 'true') {
             showDashboard();
@@ -629,7 +670,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                const data = await res.json();
+                const data = await safeJson(res);
 
                 if (data.status) {
                     sessionStorage.setItem('easyconnect_enterprise_auth', 'true');
@@ -642,7 +683,7 @@
                     errorEl.classList.remove('hidden');
                 }
             } catch (err) {
-                errorEl.innerText = 'Connection error with Vercel serverless function.';
+                errorEl.innerText = err.message || 'Connection error with Vercel serverless function.';
                 errorEl.classList.remove('hidden');
             }
         }
@@ -651,17 +692,34 @@
             document.getElementById('login-modal').classList.add('hidden');
             document.getElementById('dashboard-content').classList.remove('hidden');
             loadCRMData();
+            startAutoRefresh();
+        }
+
+        let autoRefreshInterval = null;
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            // Quietly re-syncs customers/transactions every 30s so new signups
+            // and payments show up without the admin needing to click "Sync
+            // Live Data" themselves.
+            autoRefreshInterval = setInterval(loadCRMData, 30000);
+        }
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
         }
 
         function logout() {
+            stopAutoRefresh();
             sessionStorage.removeItem('easyconnect_enterprise_auth');
             location.reload();
         }
 
         async function loadCRMData() {
             try {
-                const res = await fetch('/api/get-customers');
-                const result = await res.json();
+                const res = await fetch('/api/get-customers', { headers: adminHeaders() });
+                const result = await safeJson(res);
                 if (!result.status) throw new Error(result.message);
 
                 globalCustomers = result.customers || [];
@@ -675,11 +733,18 @@
                 const totalRevenue = successfulTxs.reduce((sum, t) => sum + (t.amount / 100), 0);
                 document.getElementById('metric-revenue').innerText = `₦${totalRevenue.toLocaleString()}`;
 
-                renderTable(globalCustomers);
+                // If the admin is mid-search, keep their filtered view instead
+                // of silently resetting it back to the full list on refresh.
+                const searchBox = document.getElementById('search-box');
+                if (searchBox && searchBox.value.trim()) {
+                    filterTable();
+                } else {
+                    renderTable(globalCustomers);
+                }
                 renderChart(globalTransactions);
             } catch (err) {
                 console.error(err);
-                document.getElementById('customer-table-body').innerHTML = `<tr><td colspan="7" class="p-8 text-center text-rose-400">Failed to pull gateway data. Verify Paystack environment keys.</td></tr>`;
+                document.getElementById('customer-table-body').innerHTML = `<tr><td colspan="7" class="p-8 text-center text-rose-400">${err.message || 'Failed to pull gateway data. Verify Paystack environment keys.'}</td></tr>`;
             }
         }
 
@@ -766,10 +831,13 @@
             const customer = globalCustomers.find(c => c.customer_code === customerCode);
             if (!customer) return;
 
-            document.getElementById('drawer-name').innerText = `${customer.first_name || ''} ${customer.last_name || ''}` || 'Client Profile';
+            document.getElementById('drawer-name').innerText = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Client Profile';
             document.getElementById('drawer-code').innerText = customer.customer_code;
             document.getElementById('drawer-email').innerText = customer.email;
-            document.getElementById('drawer-phone').innerText = customer.phone || 'Not Provided';
+            document.getElementById('drawer-firstname').value = customer.first_name || '';
+            document.getElementById('drawer-lastname').value = customer.last_name || '';
+            document.getElementById('drawer-phone').value = customer.phone || '';
+            cancelCustomerEdit(); // always open in read-only mode, even if a previous edit was left open
 
             const currentMgr = localStorage.getItem(`mgr_${customer.customer_code}`) || 'Okoro Benjamin';
             document.getElementById('drawer-manager-select').value = currentMgr;
@@ -798,6 +866,80 @@
         function closeDrawer() {
             document.getElementById('customer-drawer').classList.add('hidden');
             selectedCustomerCode = null;
+        }
+
+        // ==================== NEW FEATURE: Edit customer info (First/Last name, Phone) ====================
+        function enterCustomerEditMode() {
+            ['drawer-firstname', 'drawer-lastname', 'drawer-phone'].forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+            document.getElementById('drawer-edit-actions').classList.remove('hidden');
+            document.getElementById('drawer-edit-actions').classList.add('flex');
+            document.getElementById('drawer-edit-btn').classList.add('hidden');
+            document.getElementById('drawer-firstname').focus();
+        }
+
+        function cancelCustomerEdit() {
+            const customer = globalCustomers.find(c => c.customer_code === selectedCustomerCode);
+            if (customer) {
+                document.getElementById('drawer-firstname').value = customer.first_name || '';
+                document.getElementById('drawer-lastname').value = customer.last_name || '';
+                document.getElementById('drawer-phone').value = customer.phone || '';
+            }
+            ['drawer-firstname', 'drawer-lastname', 'drawer-phone'].forEach(id => {
+                document.getElementById(id).disabled = true;
+            });
+            document.getElementById('drawer-edit-actions').classList.add('hidden');
+            document.getElementById('drawer-edit-actions').classList.remove('flex');
+            document.getElementById('drawer-edit-btn').classList.remove('hidden');
+            document.getElementById('drawer-edit-error').classList.add('hidden');
+        }
+
+        async function saveCustomerEdit() {
+            const errEl = document.getElementById('drawer-edit-error');
+            errEl.classList.add('hidden');
+
+            const firstName = document.getElementById('drawer-firstname').value.trim();
+            const lastName = document.getElementById('drawer-lastname').value.trim();
+            const phone = document.getElementById('drawer-phone').value.trim();
+
+            if (!firstName) {
+                errEl.innerText = 'First name is required.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+            if (!selectedCustomerCode) return;
+
+            try {
+                const res = await fetch('/api/update-customer', {
+                    method: 'PATCH',
+                    headers: adminHeaders(),
+                    body: JSON.stringify({
+                        customer_code: selectedCustomerCode,
+                        first_name: firstName,
+                        last_name: lastName,
+                        phone: phone
+                    })
+                });
+                const result = await safeJson(res);
+
+                if (!res.ok || !result.status) {
+                    throw new Error(result.message || 'Failed to update customer.');
+                }
+
+                // Update local state with the confirmed values Paystack returned,
+                // so the table and drawer both reflect the real saved data.
+                const idx = globalCustomers.findIndex(c => c.customer_code === selectedCustomerCode);
+                if (idx !== -1) {
+                    globalCustomers[idx] = { ...globalCustomers[idx], ...result.customer };
+                }
+                document.getElementById('drawer-name').innerText = `${firstName} ${lastName}`.trim() || 'Client Profile';
+                renderTable(globalCustomers);
+                cancelCustomerEdit();
+            } catch (e) {
+                errEl.innerText = e.message || 'Failed to update customer.';
+                errEl.classList.remove('hidden');
+            }
         }
 
         function saveCustomerManager() {
@@ -1032,7 +1174,7 @@
                     headers: adminHeaders(),
                     body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email, phone: phone })
                 });
-                var result = await res.json();
+                var result = await safeJson(res);
 
                 if (!res.ok || !result.status) {
                     throw new Error(result.message || 'Failed to create customer.');
@@ -1067,7 +1209,7 @@
                     headers: adminHeaders(),
                     body: JSON.stringify({ customer_code: customerCode })
                 });
-                var result = await res.json();
+                var result = await safeJson(res);
                 if (!res.ok || !result.status) {
                     alert(result.message || 'Failed to delete customer on the server. It will still be hidden locally for this session.');
                 }
@@ -1156,7 +1298,7 @@
                         account_name: accountName || undefined
                     })
                 });
-                var result = await res.json();
+                var result = await safeJson(res);
 
                 if (!res.ok || !result.status) {
                     throw new Error(result.message || 'Transfer failed.');
