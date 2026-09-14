@@ -66,6 +66,51 @@ async function handleGet(req, res) {
 
 async function handlePost(req, res) {
   if (!requireAdmin(req, res)) return;
+  // Inside handlePost in api/customers.js
+
+// 1. Create customer on Paystack
+const paystackRes = await paystackRequest('/customer', {
+  method: 'POST',
+  body: {
+    email,
+    first_name,
+    last_name: last_name || '',
+    phone: phone || undefined
+  }
+});
+
+// 2. Insert into Supabase customers table and check for errors
+const supabase = getSupabaseAdmin();
+const { data: insertedCustomer, error: dbError } = await supabase
+  .from('customers')
+  .insert([
+    {
+      first_name,
+      last_name: last_name || '',
+      email,
+      phone: phone || null
+    }
+  ])
+  .select();
+
+// 3. Fail explicitly if Supabase returns an error
+if (dbError) {
+  console.error('Supabase Save Error:', dbError);
+  return res.status(500).json({
+    status: false,
+    message: 'Database error saving new user',
+    details: dbError.message,
+    hint: dbError.hint || null,
+    code: dbError.code
+  });
+}
+
+return res.status(200).json({
+  status: true,
+  message: 'Customer created successfully.',
+  customer: shapeCustomer(paystackRes.data),
+  db_record: insertedCustomer[0]
+});
 
   try {
     const { first_name, last_name, email, phone } = req.body || {};
