@@ -74,6 +74,7 @@ async function handlePost(req, res) {
       return res.status(400).json({ status: false, message: 'first_name and email are required.' });
     }
 
+    // 1. Create customer on Paystack
     const paystackRes = await paystackRequest('/customer', {
       method: 'POST',
       body: {
@@ -83,6 +84,27 @@ async function handlePost(req, res) {
         phone: phone || undefined
       }
     });
+
+    // 2. Insert record into Supabase 'customers' table
+    try {
+      const supabase = getSupabaseAdmin();
+      const { error: dbError } = await supabase
+        .from('customers')
+        .insert([
+          {
+            first_name,
+            last_name: last_name || '',
+            email,
+            phone: phone || null
+          }
+        ]);
+
+      if (dbError) {
+        console.error('create-customer: Supabase insert failed:', dbError.message);
+      }
+    } catch (dbErr) {
+      console.warn('create-customer: Supabase database save error:', dbErr.message);
+    }
 
     return res.status(200).json({
       status: true,
