@@ -67,6 +67,67 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   if (!requireAdmin(req, res)) return;
   // Inside handlePost in api/customers.js
+  async function handlePost(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const body = req.body || {};
+    
+    // Accept both camelCase and snake_case from frontend form
+    const first_name = body.first_name || body.firstName;
+    const last_name = body.last_name || body.lastName || '';
+    const email = body.email;
+    const phone = body.phone || body.phone_number || body.phoneNumber || null;
+
+    if (!email || !first_name) {
+      return res.status(400).json({ status: false, message: 'first_name and email are required.' });
+    }
+
+    // 1. Create customer on Paystack
+    const paystackRes = await paystackRequest('/customer', {
+      method: 'POST',
+      body: {
+        email,
+        first_name,
+        last_name,
+        phone: phone || undefined
+      }
+    });
+
+    // Extract final phone value (prefer raw input, fallback to Paystack response)
+    const finalPhone = phone || paystackRes?.data?.phone || null;
+
+    // 2. Insert into Supabase customers table
+    const supabase = getSupabaseAdmin();
+    const { error: dbError } = await supabase
+      .from('customers')
+      .insert([
+        {
+          first_name,
+          last_name,
+          email,
+          phone: finalPhone
+        }
+      ]);
+
+    if (dbError) {
+      console.error('create-customer: Supabase insert failed:', dbError.message);
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: 'Customer created successfully.',
+      customer: shapeCustomer(paystackRes.data)
+    });
+  } catch (err) {
+    console.error('create-customer error:', err);
+    const status = err.httpStatus && err.httpStatus < 500 ? err.httpStatus : 502;
+    return res.status(status).json({
+      status: false,
+      message: err.message || 'Failed to create customer on Paystack.'
+    });
+  }
+}
 
 // 1. Create customer on Paystack
 const paystackRes = await paystackRequest('/customer', {
