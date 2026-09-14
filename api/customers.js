@@ -238,3 +238,13 @@ function shapeTransaction(t) {
     customer: t.customer ? { email: t.customer.email } : null
   };
 }
+
+if (dbError) {
+  console.error('Database Save Error:', dbError);
+  return res.status(500).json({
+    status: false,
+    message: 'Database error saving new user',
+    details: dbError.message,
+    hint: dbError.hint
+  });
+}
