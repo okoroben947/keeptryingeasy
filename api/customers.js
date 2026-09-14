@@ -41,6 +41,53 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
   if (!requireAdmin(req, res)) return;
+  async function handleGet(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
+  try {
+    // 1. Initialize Supabase safely inside try block
+    const supabase = getSupabaseAdmin();
+    
+    const { data: dbCustomers, error: dbError } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (dbError) {
+      console.error('Supabase query error:', dbError.message);
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    // 2. Fetch Paystack transactions safely
+    let transactions = [];
+    try {
+      transactions = await fetchAllPages('/transaction');
+    } catch (tErr) {
+      console.warn('Paystack transactions fetch warning:', tErr.message);
+    }
+
+    return res.status(200).json({
+      status: true,
+      customers: (dbCustomers || []).map(c => ({
+        id: c.id,
+        first_name: c.first_name || '',
+        last_name: c.last_name || '',
+        email: c.email || '',
+        phone: c.phone || null,
+        createdAt: c.created_at
+      })),
+      transactions: (transactions || []).map(shapeTransaction)
+    });
+  } catch (err) {
+    console.error('get-customers runtime crash:', err);
+    return res.status(500).json({
+      status: false,
+      message: err.message || 'Internal Server Error'
+    });
+  }
+}
 
   try {
     const [customers, transactions] = await Promise.all([
