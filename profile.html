@@ -637,6 +637,45 @@
             }
         }
 
+        // Subscribes to live changes on this customer's own wallet row, so the
+        // balance updates the instant a payment is credited -- however it was
+        // credited (the browser's own verify call, the webhook running after
+        // the tab closed, a direct bank transfer to their virtual account, or
+        // an admin manually adjusting it). No polling, no manual refresh.
+        //
+        // Requires Realtime to be enabled on the wallets table in Supabase --
+        // see enable-wallet-realtime.sql. Row Level Security still applies to
+        // this subscription: a customer can only ever receive updates for
+        // their own row, never anyone else's.
+        function subscribeToWalletChanges(client, user) {
+            client
+                .channel(`wallet-changes-${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'wallets',
+                        filter: `user_id=eq.${user.id}`
+                    },
+                    (payload) => {
+                        const wallet = payload.new;
+                        if (!wallet) return;
+
+                        walletBalanceValue = Number(wallet.balance) || 0;
+                        renderWalletBalance();
+
+                        const accEl = document.getElementById('wallet-account-number');
+                        const provEl = document.getElementById('wallet-account-provider');
+                        const updEl = document.getElementById('wallet-updated');
+                        if (accEl) accEl.innerText = wallet.virtual_account_number || 'Not yet assigned';
+                        if (provEl) provEl.innerText = wallet.virtual_account_provider ? `(${wallet.virtual_account_provider})` : '';
+                        if (updEl) updEl.innerText = wallet.updated_at ? new Date(wallet.updated_at).toLocaleString() : '—';
+                    }
+                )
+                .subscribe();
+        }
+
         // ---------- Fund Wallet (Paystack) ----------
         function openFundWalletModal() {
             document.getElementById('fund-wallet-error').classList.add('hidden');
@@ -706,29 +745,19 @@
         // the wallet using a service-role key Row Level Security can't be
         // bypassed by) to do the actual crediting, then just reloads the
         // wallet display with whatever the backend confirms.
-        async function verifyPaymentOnBackend(reference) {
+        function verifyPaymentOnBackend(reference) {
             const errEl = document.getElementById('fund-wallet-error');
             const payBtn = document.getElementById('fund-wallet-pay-btn');
-            const client = getSupabase();
-            let sessionToken = '';
-            if (client) {
-                const { data: { session } } = await client.auth.getSession();
-                if (session) {
-                    sessionToken = session.access_token;
-                }
-            }
 
             fetch('/api/verify-wallet-funding', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {})
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reference })
             })
                 .then((res) => res.json())
                 .then((result) => {
                     closeFundWalletModal();
+                    const client = getSupabase();
                     if (client && currentUser) {
                         loadWallet(client, currentUser);
                     }
@@ -964,6 +993,7 @@
             populateProfileFields(currentUser);
             setupReferralLink(currentUser);
             loadWallet(client, currentUser);
+            subscribeToWalletChanges(client, currentUser);
 
             // Fetch and display transaction records
             const tbody = document.getElementById('user-tx-body');
@@ -1096,7 +1126,7 @@
             const client = getSupabase();
             if (!client || !client.auth) {
                 errEl.innerText = "Supabase failed to load. Please refresh the page and try again.";
-                errEl.classList.add('hidden');
+                errEl.classList.remove('hidden');
                 return;
             }
 
