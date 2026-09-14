@@ -1366,29 +1366,6 @@
         // showDashboard() reveals #dashboard-content.
         renderManagersList();
         syncManagerSelectOptions();
-        function renderCustomerTable(customers) {
-  const tbody = document.getElementById('customer-table-body');
-  if (!tbody) return;
-
-  tbody.innerHTML = customers.map(c => {
-    const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'N/A';
-    const formattedDate = c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A';
-    const balance = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(c.wallet_balance || 0);
-
-    return `
-      <tr>
-        <td>${fullName}</td>
-        <td>${c.email || 'N/A'}</td>
-        <td>${c.phone || 'N/A'}</td>
-        <td>${balance}</td>
-        <td>${formattedDate}</td>
-        <td>
-          <button onclick="viewProfile('${c.id}')">View Profile</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-}
     </script>
 </body>
 </html>
