@@ -680,6 +680,14 @@
 
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
+        let autoRefreshInterval = null;
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            // Quietly re-syncs customers/transactions every 30s so new signups
+            // and payments show up without the admin needing to click "Sync
+            // Live Data" themselves.
+            autoRefreshInterval = setInterval(loadCRMData, 30000);
+        }
         let globalCustomers = [];
         let globalTransactions = [];
         let revenueChartInstance = null;
@@ -745,14 +753,7 @@
             startAutoRefresh();
         }
 
-        let autoRefreshInterval = null;
-        function startAutoRefresh() {
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            // Quietly re-syncs customers/transactions every 30s so new signups
-            // and payments show up without the admin needing to click "Sync
-            // Live Data" themselves.
-            autoRefreshInterval = setInterval(loadCRMData, 30000);
-        }
+        
         function stopAutoRefresh() {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
@@ -785,7 +786,7 @@
 
                 // NEW: pull every customer's wallet balance in one call so the
                 // directory table can show it without one request per row.
-                await refreshWalletBalances();
+                //await refreshWalletBalances();
 
                 // If the admin is mid-search, keep their filtered view instead
                 // of silently resetting it back to the full list on refresh.
@@ -812,8 +813,7 @@
             tbody.innerHTML = customers.map(c => {
                 const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed Client';
                 const assignedManager = localStorage.getItem(`mgr_${c.customer_code}`) || 'Okoro Benjamin';
-                const walletBalance = getWalletBalanceNaira(c.email);
-
+                const balance = getWalletBalanceNaira(c);
                 return `
                     <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${c.customer_code}')">
                         <td class="p-4 font-semibold text-white">${fullName}</td>
@@ -1393,10 +1393,12 @@
         var walletBalances = {};       // email -> wallet_balance in naira (cached client-side)
         var debitWalletTarget = null;
 
-        function getWalletBalanceNaira(email) {
-            if (!email) return 0;
-            return walletBalances[email.toLowerCase()] || 0;
-        }
+        function getWalletBalanceNaira(customer) {
+  // Safely pull the balance directly from the Supabase customer object
+  const balance = Number(customer.wallet_balance) || 0;
+  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(balance);
+}
+        
 
         async function refreshWalletBalances() {
             try {
