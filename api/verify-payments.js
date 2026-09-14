@@ -1,4 +1,4 @@
-// GET /api/verify-payment?reference=xxxx
+// /api/verify-payment.js
 //
 // Called from pricing.html right after Paystack reports a successful
 // payment for a ONE-OFF SERVICE (NIN registration, CAC registration, etc.)
@@ -9,17 +9,22 @@
 // pricing.html has no login system, so there's no user_id to attach --
 // these payments are matched to a customer by the email/phone they typed
 // into the request form (which is emailed to you separately via FormSubmit).
+//
+// Method: GET
+// Query:  ?reference=xxxx
+//
+// Required env vars: PAYSTACK_SECRET_KEY
+// Optional env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+//   (only needed to log the payment to service_payments; if not set, the
+//   payment still verifies fine, it just won't be recorded on your side.)
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { paystackRequest } from './_lib/paystackClient.js';
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ status: false, message: 'Method not allowed' });
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ status: false, message: 'Method not allowed. Use GET.' });
   }
 
   const { reference } = req.query;
@@ -28,30 +33,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const verifyRes = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
-    );
-    const verifyData = await verifyRes.json();
-
-    if (!verifyRes.ok) {
-      return res.status(502).json({ status: false, message: 'Could not reach Paystack.' });
-    }
+    const verifyData = await paystackRequest(`/transaction/verify/${encodeURIComponent(reference)}`);
 
     // Record it for your own records, regardless of outcome, so you have a
     // full audit trail even for failed/abandoned attempts. Safe to call
     // more than once for the same reference (see note in the SQL file).
-    try {
-      await supabaseAdmin.from('service_payments').upsert({
-        reference,
-        amount: (verifyData.data.amount || 0) / 100,
-        status: verifyData.data.status || 'unknown',
-        service_name: verifyData.data.metadata && verifyData.data.metadata.service,
-        customer_email: verifyData.data.customer && verifyData.data.customer.email,
-        paid_at: verifyData.data.paid_at || null
-      });
-    } catch (logErr) {
-      console.error('service_payments logging notice:', logErr);
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = getSupabaseAdmin();
+        await supabase.from('service_payments').upsert({
+          reference,
+          amount: (verifyData.data.amount || 0) / 100,
+          status: verifyData.data.status || 'unknown',
+          service_name: verifyData.data.metadata && verifyData.data.metadata.service,
+          customer_email: verifyData.data.customer && verifyData.data.customer.email,
+          paid_at: verifyData.data.paid_at || null
+        });
+      } catch (logErr) {
+        console.error('service_payments logging notice:', logErr.message);
+      }
     }
 
     // pricing.html only checks result.data.status === 'success', so this
@@ -60,6 +60,10 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('verify-payment error:', err);
-    return res.status(500).json({ status: false, message: 'Something went wrong verifying your payment.' });
+    const status = err.httpStatus && err.httpStatus < 500 ? err.httpStatus : 502;
+    return res.status(status).json({
+      status: false,
+      message: err.message || 'Something went wrong verifying your payment.'
+    });
   }
 }

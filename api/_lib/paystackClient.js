@@ -1,7 +1,12 @@
 // /api/_lib/paystackClient.js
 //
-// Thin wrapper around Paystack's REST API. Uses the global `fetch` that's built
-// into the Node.js 18+ runtime Vercel uses by default.
+// Thin wrapper around Paystack's REST API. Uses the global `fetch` built
+// into the Node.js 18+ runtime Vercel uses by default, so no extra
+// dependency is needed for this file.
+//
+// Required env var: PAYSTACK_SECRET_KEY (use a LIVE secret key only once
+// you've tested everything against a TEST secret key -- Paystack test/live
+// keys are separate and test transactions never touch real money).
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 

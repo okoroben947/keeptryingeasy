@@ -1,4 +1,18 @@
 // api/customers.js
+//
+// One endpoint handling all customer CRUD, kept as a single file to stay
+// well under Vercel Hobby's 12-function limit. Routes by HTTP method:
+//   GET    -> list customers + transactions (admin-only, for dashboard.html)
+//   POST   -> create a customer (admin-only)
+//   DELETE -> "delete" a customer (admin-only; see handleDelete for the
+//             real mechanics, since Paystack has no true delete)
+//   PATCH  -> update a customer's first_name/last_name/phone (admin-only)
+//
+// This used to be four separate files (get-customers.js, create-customer.js,
+// delete-customer.js, update-customer.js) -- merged here for the function-
+// count limit. If you still have those four files sitting in your api/
+// folder, delete them now; this file replaces all of them.
+
 import { paystackRequest } from './_lib/paystackClient.js';
 import requireAdmin from './_lib/requireAdmin.js';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
@@ -14,15 +28,20 @@ export default async function handler(req, res) {
       return handleGet(req, res);
     case 'POST':
       return handlePost(req, res);
+    case 'PATCH':
+    case 'PUT':
+      return handlePatch(req, res);
     case 'DELETE':
       return handleDelete(req, res);
     default:
-      res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
+      res.setHeader('Allow', ['GET', 'POST', 'PATCH', 'DELETE']);
       return res.status(405).end(`Method ${method} Not Allowed`);
   }
 }
 
 async function handleGet(req, res) {
+  if (!requireAdmin(req, res)) return;
+
   try {
     const [customers, transactions] = await Promise.all([
       fetchAllPages('/customer'),
@@ -65,19 +84,10 @@ async function handlePost(req, res) {
       }
     });
 
-    const customer = paystackRes.data;
-
     return res.status(200).json({
       status: true,
       message: 'Customer created successfully.',
-      customer: {
-        customer_code: customer.customer_code,
-        first_name: customer.first_name,
-        last_name: customer.last_name,
-        email: customer.email,
-        phone: customer.phone,
-        createdAt: customer.createdAt
-      }
+      customer: shapeCustomer(paystackRes.data)
     });
   } catch (err) {
     console.error('create-customer error:', err);
@@ -85,6 +95,46 @@ async function handlePost(req, res) {
     return res.status(status).json({
       status: false,
       message: err.message || 'Failed to create customer on Paystack.'
+    });
+  }
+}
+
+async function handlePatch(req, res) {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const { customer_code, first_name, last_name, phone } = req.body || {};
+
+    if (!customer_code) {
+      return res.status(400).json({ status: false, message: 'customer_code is required.' });
+    }
+    if (!first_name) {
+      return res.status(400).json({ status: false, message: 'first_name is required.' });
+    }
+
+    // Note: email is intentionally not editable here -- Paystack uses it as
+    // part of how a customer is identified, and doesn't support changing it
+    // the same simple way as name/phone.
+    const paystackRes = await paystackRequest(`/customer/${encodeURIComponent(customer_code)}`, {
+      method: 'PUT',
+      body: {
+        first_name,
+        last_name: last_name || '',
+        phone: phone || undefined
+      }
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: 'Customer updated successfully.',
+      customer: shapeCustomer(paystackRes.data)
+    });
+  } catch (err) {
+    console.error('update-customer error:', err);
+    const status = err.httpStatus && err.httpStatus < 500 ? err.httpStatus : 502;
+    return res.status(status).json({
+      status: false,
+      message: err.message || 'Failed to update customer on Paystack.'
     });
   }
 }

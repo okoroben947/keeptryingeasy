@@ -718,7 +718,7 @@
 
         async function loadCRMData() {
             try {
-                const res = await fetch('/api/get-customers', { headers: adminHeaders() });
+                const res = await fetch('/api/customers', { headers: adminHeaders() });
                 const result = await safeJson(res);
                 if (!result.status) throw new Error(result.message);
 
@@ -911,7 +911,7 @@
             if (!selectedCustomerCode) return;
 
             try {
-                const res = await fetch('/api/update-customer', {
+                const res = await fetch('/api/customers', {
                     method: 'PATCH',
                     headers: adminHeaders(),
                     body: JSON.stringify({
@@ -1169,7 +1169,7 @@
             saveBtn.innerText = 'Saving...';
 
             try {
-                var res = await fetch('/api/create-customer', {
+                var res = await fetch('/api/customers', {
                     method: 'POST',
                     headers: adminHeaders(),
                     body: JSON.stringify({ first_name: firstName, last_name: lastName, email: email, phone: phone })
@@ -1202,9 +1202,9 @@
 
             // Attempt to persist server-side if an endpoint exists; the row is removed from
             // the local view regardless so the admin isn't blocked by a missing backend.
-            // Wire up a real "/api/delete-customer" serverless function to make this permanent.
+            // This calls the consolidated /api/customers endpoint with method: 'DELETE'.
             try {
-                var res = await fetch('/api/delete-customer', {
+                var res = await fetch('/api/customers', {
                     method: 'DELETE',
                     headers: adminHeaders(),
                     body: JSON.stringify({ customer_code: customerCode })
