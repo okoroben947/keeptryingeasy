@@ -44,6 +44,36 @@ async function handleGet(req, res) {
     });
   }
 }
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    try {
+      // Fetch all records directly from Supabase customers table
+      const { data: customers, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return res.status(200).json({
+        status: true,
+        customers: customers || []
+      });
+    } catch (error) {
+      console.error('Error fetching customers from Supabase:', error);
+      return res.status(500).json({ status: false, error: error.message });
+    }
+  }
+
+  // Handle other HTTP methods (POST, DELETE, etc.)
+}
 
 async function handlePost(req, res) {
   if (!requireAdmin(req, res)) return;
