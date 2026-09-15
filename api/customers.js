@@ -24,21 +24,80 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
   try {
-    // 1. Fetch transactions from Paystack
-    const transactions = await fetchAllPages('/transaction');
+    // 1. Fetch customers and transactions from Paystack in parallel
+    const [paystackCustomers, transactions] = await Promise.all([
+      fetchAllPages('/customer'),
+      fetchAllPages('/transaction')
+    ]);
 
-    // 2. Fetch customers and their wallet balances directly from Supabase (source of truth)
-    const supabase = getSupabaseAdmin();
-    const { data: dbCustomers, error: dbError } = await supabase
-      .from('customers')
-      .select('*');
+    // 2. Fetch wallet balances from Supabase database
+    let supabaseWalletMap = new Map();
+    let supabaseCustomers = [];
 
-    if (dbError) {
-      throw new Error(`Failed to fetch customers from database: ${dbError.message}`);
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data: dbCustomers } = await supabase.from('customers').select('*');
+        
+        if (dbCustomers) {
+          supabaseCustomers = dbCustomers;
+          dbCustomers.forEach(c => {
+            if (c.email) {
+              supabaseWalletMap.set(c.email.toLowerCase(), Number(c.wallet_balance) || 0);
+            }
+            if (c.customer_code) {
+              supabaseWalletMap.set(c.customer_code, Number(c.wallet_balance) || 0);
+            }
+          });
+        }
+      } catch (dbErr) {
+        console.warn('get-customers: Supabase wallet fetch failed:', dbErr.message);
+      }
     }
 
-    // 3. Filter out removed customers if table exists
-    const visibleCustomers = await filterRemovedCustomers(dbCustomers || []);
+    // 3. Merge Paystack customers with Supabase wallet balances
+    const mergedCustomersMap = new Map();
+
+    // First add Paystack customers
+    (paystackCustomers || []).forEach(c => {
+      const emailKey = c.email ? c.email.toLowerCase() : null;
+      const walletBalance = (emailKey && supabaseWalletMap.has(emailKey)) 
+        ? supabaseWalletMap.get(emailKey) 
+        : (supabaseWalletMap.get(c.customer_code) || 0);
+
+      mergedCustomersMap.set(emailKey || c.customer_code, {
+        customer_code: c.customer_code,
+        first_name: c.first_name,
+        last_name: c.last_name,
+        email: c.email,
+        phone: c.phone,
+        wallet_balance: walletBalance,
+        createdAt: c.createdAt || c.created_at
+      });
+    });
+
+    // Then add any Supabase-only customers that might not be on Paystack
+    supabaseCustomers.forEach(c => {
+      const emailKey = c.email ? c.email.toLowerCase() : null;
+      const key = emailKey || c.customer_code;
+
+      if (key && !mergedCustomersMap.has(key)) {
+        mergedCustomersMap.set(key, {
+          customer_code: c.customer_code || '',
+          first_name: c.first_name || '',
+          last_name: c.last_name || '',
+          email: c.email || '',
+          phone: c.phone || '',
+          wallet_balance: Number(c.wallet_balance) || 0,
+          createdAt: c.createdAt || c.created_at || new Date().toISOString()
+        });
+      }
+    });
+
+    const allCustomers = Array.from(mergedCustomersMap.values());
+
+    // 4. Filter out blacklisted/removed customers
+    const visibleCustomers = await filterRemovedCustomers(allCustomers);
 
     return res.status(200).json({
       status: true,
@@ -76,16 +135,21 @@ async function handlePost(req, res) {
 
     const customer = paystackRes.data;
 
-    // Also ensure the customer is registered in Supabase with a default wallet balance if needed
-    const supabase = getSupabaseAdmin();
-    await supabase.from('customers').upsert({
-      email: customer.email,
-      first_name: customer.first_name,
-      last_name: customer.last_name,
-      phone: customer.phone,
-      customer_code: customer.customer_code,
-      wallet_balance: 0
-    }, { onConflict: 'email' });
+    // Ensure customer record is mirrored into Supabase
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = getSupabaseAdmin();
+        await supabase.from('customers').upsert({
+          email: customer.email,
+          first_name: customer.first_name,
+          last_name: customer.last_name,
+          phone: customer.phone,
+          customer_code: customer.customer_code
+        }, { onConflict: 'email' });
+      } catch (dbErr) {
+        console.warn('create-customer: Supabase sync warning:', dbErr.message);
+      }
+    }
 
     return res.status(200).json({
       status: true,
@@ -196,7 +260,7 @@ function shapeCustomer(c) {
     last_name: c.last_name,
     email: c.email,
     phone: c.phone,
-    wallet_balance: Number(c.wallet_balance) || 0, // Properly maps the wallet balance
+    wallet_balance: Number(c.wallet_balance) || 0,
     createdAt: c.createdAt || c.created_at
   };
 }
