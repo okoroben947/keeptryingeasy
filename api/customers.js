@@ -8,7 +8,7 @@ const MAX_PAGES = 5;   // safety cap: up to 5 x 100 = 500 records per list
 const PER_PAGE = 100;
 
 export default async function handler(req, res) {
-  // Protect all methods (GET, POST, DELETE) at the root level
+  // Protect all methods (GET, POST, DELETE) at root level
   if (!requireAdmin(req, res)) return;
 
   const { method } = req;
@@ -34,23 +34,41 @@ async function handleGet(req, res) {
       fetchAllPages('/transaction')
     ]);
 
-    // 2. Fetch wallet balances from Supabase database
+    // 2. Fetch wallet balances and customers from Supabase database
     let supabaseWalletMap = new Map();
     let supabaseCustomers = [];
 
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = getSupabaseAdmin();
-        const { data: dbCustomers } = await supabase.from('customers').select('*');
-        
-        if (dbCustomers) {
+
+        // Fetch both 'customers' and 'wallets' tables in parallel
+        const [customersRes, walletsRes] = await Promise.all([
+          supabase.from('customers').select('*'),
+          supabase.from('wallets').select('*')
+        ]);
+
+        const dbCustomers = customersRes.data || [];
+        const dbWallets = walletsRes.data || [];
+
+        // Map balance from 'wallets' table by email, customer_code, or user_id
+        dbWallets.forEach(w => {
+          const bal = Number(w.balance ?? w.wallet_balance ?? w.amount) || 0;
+          if (w.email) supabaseWalletMap.set(w.email.toLowerCase(), bal);
+          if (w.customer_code) supabaseWalletMap.set(w.customer_code, bal);
+          if (w.user_id) supabaseWalletMap.set(w.user_id, bal);
+        });
+
+        // Fallback check on 'customers' table if wallets table record was missing
+        if (dbCustomers.length > 0) {
           supabaseCustomers = dbCustomers;
           dbCustomers.forEach(c => {
-            if (c.email) {
-              supabaseWalletMap.set(c.email.toLowerCase(), Number(c.wallet_balance) || 0);
+            const bal = Number(c.wallet_balance) || 0;
+            if (c.email && !supabaseWalletMap.has(c.email.toLowerCase())) {
+              supabaseWalletMap.set(c.email.toLowerCase(), bal);
             }
-            if (c.customer_code) {
-              supabaseWalletMap.set(c.customer_code, Number(c.wallet_balance) || 0);
+            if (c.customer_code && !supabaseWalletMap.has(c.customer_code)) {
+              supabaseWalletMap.set(c.customer_code, bal);
             }
           });
         }
@@ -80,19 +98,22 @@ async function handleGet(req, res) {
       });
     });
 
-    // Then add any Supabase-only customers that might not be on Paystack
+    // Add any Supabase-only customers that might not be registered on Paystack yet
     supabaseCustomers.forEach(c => {
       const emailKey = c.email ? c.email.toLowerCase() : null;
-      const key = emailKey || c.customer_code;
+      const key = emailKey || c.customer_code || c.id;
+      const walletBalance = (emailKey && supabaseWalletMap.has(emailKey))
+        ? supabaseWalletMap.get(emailKey)
+        : (Number(c.wallet_balance) || 0);
 
       if (key && !mergedCustomersMap.has(key)) {
         mergedCustomersMap.set(key, {
           customer_code: c.customer_code || '',
-          first_name: c.first_name || '',
+          first_name: c.first_name || c.full_name || '',
           last_name: c.last_name || '',
           email: c.email || '',
           phone: c.phone || '',
-          wallet_balance: Number(c.wallet_balance) || 0,
+          wallet_balance: walletBalance,
           createdAt: c.createdAt || c.created_at || new Date().toISOString()
         });
       }
@@ -137,10 +158,12 @@ async function handlePost(req, res) {
 
     const customer = paystackRes.data;
 
-    // Ensure customer record is mirrored into Supabase
+    // Ensure customer & wallet records are mirrored into Supabase
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
       try {
         const supabase = getSupabaseAdmin();
+        
+        // Upsert into customers
         await supabase.from('customers').upsert({
           email: customer.email,
           first_name: customer.first_name,
@@ -148,6 +171,14 @@ async function handlePost(req, res) {
           phone: customer.phone,
           customer_code: customer.customer_code
         }, { onConflict: 'email' });
+
+        // Ensure row exists in wallets table
+        await supabase.from('wallets').upsert({
+          email: customer.email,
+          customer_code: customer.customer_code,
+          balance: 0
+        }, { onConflict: 'email' });
+
       } catch (dbErr) {
         console.warn('create-customer: Supabase sync warning:', dbErr.message);
       }
@@ -213,7 +244,7 @@ async function handleDelete(req, res) {
   return res.status(200).json({
     status: true,
     message: paystackWarning
-      ? `Customer removed from your directory. Note: Paystack blacklist call failed (${paystackWarning}), so the customer may still be able to transact on Paystack directly.`
+      ? `Customer removed from directory. Note: Paystack blacklist failed (${paystackWarning}).`
       : 'Customer removed and blocked from further transactions.'
   });
 }
