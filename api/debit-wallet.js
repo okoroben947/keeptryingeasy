@@ -4,10 +4,10 @@ import { requireAdmin } from './_lib/requireAdmin.js';
 
 function getSupabaseClient() {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
     if (!url || !key) {
-        throw new Error('Server misconfiguration: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+        throw new Error('Server misconfiguration: Missing SUPABASE_URL or API Key.');
     }
 
     return createClient(url, key);
@@ -54,13 +54,9 @@ async function handleGet(req, res) {
             supabase.from('wallets').select('*').eq('email', email).maybeSingle()
         ]);
 
-        if (customerRes.error) {
-            return res.status(500).json({ status: false, message: 'Failed to fetch customer profile.', detail: customerRes.error.message });
-        }
-
         const customer = customerRes.data || {};
         const wallet = walletRes.data || {};
-        const balance = Number(wallet.balance ?? wallet.wallet_balance ?? wallet.amount ?? customer.wallet_balance ?? 0);
+        const balance = Number(wallet.balance ?? customer.wallet_balance ?? 0);
 
         return res.status(200).json({
             status: true,
@@ -89,31 +85,26 @@ async function handleGet(req, res) {
     const walletMap = new Map();
 
     wallets.forEach(w => {
-        // Collect all potential key columns from wallets
-        const keys = [
-            w.email,
-            w.customer_email,
-            w.user_id,
-            w.customer_id,
-            w.customer_code,
-            w.id
-        ].filter(Boolean).map(v => String(v).toLowerCase());
+        const liveVal = Number(w.balance ?? 0);
 
-        // Read any possible balance column name
-        const liveVal = Number(w.balance ?? w.wallet_balance ?? w.amount ?? w.current_balance ?? 0);
-
-        keys.forEach(k => walletMap.set(k, liveVal));
+        // Map every potential user identifier key from the wallets table
+        if (w.user_id) walletMap.set(String(w.user_id).toLowerCase(), liveVal);
+        if (w.email) walletMap.set(String(w.email).toLowerCase(), liveVal);
+        if (w.customer_id) walletMap.set(String(w.customer_id).toLowerCase(), liveVal);
+        if (w.id) walletMap.set(String(w.id).toLowerCase(), liveVal);
     });
 
     const mergedCustomers = customers.map(c => {
-        const cEmail = (c.email || '').toLowerCase();
+        const cUserId = String(c.user_id || '').toLowerCase();
+        const cEmail = String(c.email || '').toLowerCase();
         const cId = String(c.id || '').toLowerCase();
-        const cCode = (c.customer_code || '').toLowerCase();
+        const cCode = String(c.customer_code || '').toLowerCase();
 
-        // Match against any mapped identifier key
-        const liveBalance = walletMap.get(cEmail) 
-            ?? walletMap.get(cId) 
-            ?? walletMap.get(cCode) 
+        // Match wallet using user_id UUID, email, integer id, or customer_code
+        const liveBalance = walletMap.get(cUserId)
+            ?? walletMap.get(cEmail)
+            ?? walletMap.get(cId)
+            ?? walletMap.get(cCode)
             ?? Number(c.wallet_balance || c.balance || 0);
 
         return {
@@ -125,7 +116,7 @@ async function handleGet(req, res) {
     return res.status(200).json({ 
         status: true, 
         customers: mergedCustomers,
-        raw_wallets_debug: wallets // TEMPORARY DEBUG: Exposes raw wallets records to inspect key names
+        raw_wallets_debug: wallets
     });
 }
 
