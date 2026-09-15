@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ status: false, message: 'Method not allowed. Use POST.' });
   }
 
+  // Admin check - handles the 401 response internally if it fails
   if (!requireAdmin(req, res)) return;
 
   const {

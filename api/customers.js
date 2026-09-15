@@ -1,12 +1,16 @@
-// api/customers.js
-import { paystackRequest } from './_lib/paystackClient.js';
+// /api/customers.js
+
 import requireAdmin from './_lib/requireAdmin.js';
+import { paystackRequest } from './_lib/paystackClient.js';
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 
 const MAX_PAGES = 5;   // safety cap: up to 5 x 100 = 500 records per list
 const PER_PAGE = 100;
 
 export default async function handler(req, res) {
+  // Protect all methods (GET, POST, DELETE) at the root level
+  if (!requireAdmin(req, res)) return;
+
   const { method } = req;
 
   switch (method) {
@@ -114,8 +118,6 @@ async function handleGet(req, res) {
 }
 
 async function handlePost(req, res) {
-  if (!requireAdmin(req, res)) return;
-
   try {
     const { first_name, last_name, email, phone } = req.body || {};
 
@@ -175,8 +177,6 @@ async function handlePost(req, res) {
 }
 
 async function handleDelete(req, res) {
-  if (!requireAdmin(req, res)) return;
-
   const { customer_code } = req.body || {};
   if (!customer_code) {
     return res.status(400).json({ status: false, message: 'customer_code is required.' });
