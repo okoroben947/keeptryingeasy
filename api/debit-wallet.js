@@ -14,7 +14,6 @@ function getSupabaseClient() {
 }
 
 export default async function handler(req, res) {
-    // Prevent browser caching so stale 0.00 balances are never served
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,7 +24,6 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    // Admin Authentication Check
     if (!requireAdmin(req, res)) {
         return;
     }
@@ -46,12 +44,10 @@ export default async function handler(req, res) {
     }
 }
 
-// GET: Queries both `customers` and `wallets` tables and merges their data
 async function handleGet(req, res) {
     const supabase = getSupabaseClient();
     const { email } = req.query || {};
 
-    // 1. GET Single Customer + Wallet
     if (email) {
         const [customerRes, walletRes] = await Promise.all([
             supabase.from('customers').select('*').eq('email', email).maybeSingle(),
@@ -62,13 +58,9 @@ async function handleGet(req, res) {
             return res.status(500).json({ status: false, message: 'Failed to fetch customer profile.', detail: customerRes.error.message });
         }
 
-        if (!customerRes.data && !walletRes.data) {
-            return res.status(404).json({ status: false, message: `No record found for email ${email}.` });
-        }
-
         const customer = customerRes.data || {};
         const wallet = walletRes.data || {};
-        const balance = Number(wallet.balance ?? wallet.wallet_balance ?? customer.wallet_balance ?? 0);
+        const balance = Number(wallet.balance ?? wallet.wallet_balance ?? wallet.amount ?? customer.wallet_balance ?? 0);
 
         return res.status(200).json({
             status: true,
@@ -82,33 +74,47 @@ async function handleGet(req, res) {
         });
     }
 
-    // 2. GET All Customers + Wallets
     const [customersRes, walletsRes] = await Promise.all([
         supabase.from('customers').select('*'),
         supabase.from('wallets').select('*')
     ]);
 
     if (customersRes.error) {
-        return res.status(500).json({ status: false, message: 'Failed to fetch registered customers.', detail: customersRes.error.message });
+        return res.status(500).json({ status: false, message: 'Failed to fetch customers.', detail: customersRes.error.message });
     }
 
     const customers = customersRes.data || [];
     const wallets = walletsRes.data || [];
 
-    // Map wallet balances by lowercase email for fast lookup
     const walletMap = new Map();
+
     wallets.forEach(w => {
-        if (w.email) {
-            walletMap.set(w.email.toLowerCase(), Number(w.balance ?? w.wallet_balance ?? 0));
-        }
+        // Collect all potential key columns from wallets
+        const keys = [
+            w.email,
+            w.customer_email,
+            w.user_id,
+            w.customer_id,
+            w.customer_code,
+            w.id
+        ].filter(Boolean).map(v => String(v).toLowerCase());
+
+        // Read any possible balance column name
+        const liveVal = Number(w.balance ?? w.wallet_balance ?? w.amount ?? w.current_balance ?? 0);
+
+        keys.forEach(k => walletMap.set(k, liveVal));
     });
 
-    // Attach true wallet balances from `wallets` table to customer records
     const mergedCustomers = customers.map(c => {
-        const customerEmail = (c.email || '').toLowerCase();
-        const liveBalance = walletMap.has(customerEmail)
-            ? walletMap.get(customerEmail)
-            : Number(c.wallet_balance || 0);
+        const cEmail = (c.email || '').toLowerCase();
+        const cId = String(c.id || '').toLowerCase();
+        const cCode = (c.customer_code || '').toLowerCase();
+
+        // Match against any mapped identifier key
+        const liveBalance = walletMap.get(cEmail) 
+            ?? walletMap.get(cId) 
+            ?? walletMap.get(cCode) 
+            ?? Number(c.wallet_balance || c.balance || 0);
 
         return {
             ...c,
@@ -116,10 +122,13 @@ async function handleGet(req, res) {
         };
     });
 
-    return res.status(200).json({ status: true, customers: mergedCustomers });
+    return res.status(200).json({ 
+        status: true, 
+        customers: mergedCustomers,
+        raw_wallets_debug: wallets // TEMPORARY DEBUG: Exposes raw wallets records to inspect key names
+    });
 }
 
-// POST: Execute debit transaction on wallet balance
 async function handlePost(req, res) {
     const supabase = getSupabaseClient();
     const { email, amount, service_name, reason } = req.body || {};
