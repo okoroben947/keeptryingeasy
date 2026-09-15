@@ -13,12 +13,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Tell mobile browsers (Android/Samsung "auto dark", iOS smart invert, etc.) that this
-           page already handles its own dark theme. Without this, some mobile browsers forcibly
-           re-theme content and form fields -- injecting a light/white background while the
-           page's own light text color stays as-is, which can make the login field and table
-           text effectively invisible (light text on a light box the browser added on top of
-           our dark background). */
         html {
             color-scheme: dark;
         }
@@ -39,9 +33,6 @@
             opacity: 1;
         }
 
-        /* iOS Safari auto-zooms the whole page on focus if an input's font-size is under 16px,
-           which is what makes layouts look "overlapping"/broken on mobile once the keyboard
-           opens. Forcing 16px on small screens stops the zoom. */
         @media (max-width: 640px) {
             input, select, textarea {
                 font-size: 16px !important;
@@ -54,7 +45,6 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* ==================== NEW: Sidebar / mobile nav / section switching ==================== */
         .nav-btn {
             display: flex;
             align-items: center;
@@ -91,7 +81,6 @@
             width: auto;
         }
 
-        /* ==================== NEW: Role badges (Managers section) ==================== */
         .role-badge {
             display: inline-block;
             font-size: 10px;
@@ -104,7 +93,6 @@
             font-family: monospace;
         }
 
-        /* ==================== NEW: Shared modal styles (Add Customer / Add Manager / Send Money) ==================== */
         .ec-modal-overlay {
             position: fixed;
             inset: 0;
@@ -115,14 +103,6 @@
             justify-content: center;
             padding: 1rem;
             overflow-y: auto;
-            /* Hidden by default. Deliberately NOT "display: flex" here: Tailwind's
-               "hidden" utility lives inside a CSS @layer, and un-layered rules (like
-               this plain <style> block) always beat layered rules regardless of
-               source order - so a bare "display: flex" here would have silently
-               overridden Tailwind's "hidden" class on this element every time,
-               making the modal visible immediately on page load no matter what.
-               Scoping the flex display to ":not(.hidden)" keeps both states defined
-               in this same un-layered stylesheet, so there's no cross-layer fight. */
             display: none;
         }
         .ec-modal-overlay:not(.hidden) {
@@ -454,7 +434,7 @@
                         <p class="text-[10px] uppercase font-semibold text-slate-500">Wallet Balance</p>
                         <p id="drawer-wallet-balance" class="text-lg font-black text-emerald-400 mt-1">₦0.00</p>
                     </div>
-                    <button onclick="openDebitWalletModalByCode(selectedCustomerCode)" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-semibold px-4 py-2 rounded-lg text-xs transition whitespace-nowrap">
+                    <button onclick="openDebitWalletModal(selectedCustomerEmail)" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-semibold px-4 py-2 rounded-lg text-xs transition whitespace-nowrap">
                         <i class="fa-solid fa-minus mr-1"></i> Debit Wallet
                     </button>
                 </div>
@@ -512,7 +492,7 @@
                     <button onclick="openSendMoneyModal('customer', selectedCustomerCode)" class="w-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold py-2 rounded-lg text-xs transition">
                         <i class="fa-solid fa-money-bill-transfer mr-1"></i> Send Money
                     </button>
-                    <button onclick="openDebitWalletModalByCode(selectedCustomerCode)" class="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-semibold py-2 rounded-lg text-xs transition">
+                    <button onclick="openDebitWalletModal(selectedCustomerEmail)" class="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 font-semibold py-2 rounded-lg text-xs transition">
                         <i class="fa-solid fa-minus mr-1"></i> Debit Wallet
                     </button>
                     <button onclick="deleteCustomer(selectedCustomerCode)" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold py-2 rounded-lg text-xs transition col-span-2 sm:col-span-1">
@@ -680,24 +660,25 @@
 
     <!-- ==================== JAVASCRIPT LOGIC ==================== -->
     <script>
-        let autoRefreshInterval = null;
-        function startAutoRefresh() {
-            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-            // Quietly re-syncs customers/transactions every 30s so new signups
-            // and payments show up without the admin needing to click "Sync
-            // Live Data" themselves.
-            autoRefreshInterval = setInterval(loadCRMData, 30000);
-        }
         let globalCustomers = [];
         let globalTransactions = [];
         let revenueChartInstance = null;
         let selectedCustomerCode = null;
+        let selectedCustomerEmail = null;
+        let selectedCustomerKey = null;
+        let autoRefreshInterval = null;
 
-        // Wraps res.json() with a clear error when the server didn't actually
-        // return JSON -- almost always means the request hit a 404/500 HTML
-        // error page instead of a real serverless function. This is what was
-        // showing as the cryptic "Unexpected token 'T'... is not valid JSON"
-        // error: "T" is the start of "The page could not be found".
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(loadCRMData, 30000);
+        }
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+
         async function safeJson(res) {
             const text = await res.text();
             try {
@@ -711,7 +692,6 @@
             }
         }
 
-        // Session Check
         if (sessionStorage.getItem('easyconnect_enterprise_auth') === 'true') {
             showDashboard();
         }
@@ -732,9 +712,6 @@
 
                 if (data.status) {
                     sessionStorage.setItem('easyconnect_enterprise_auth', 'true');
-                    // NEW: re-sent as the "x-admin-password" header on every
-                    // create/delete/send-money request - see adminHeaders() below
-                    // and /api/_lib/requireAdmin.js for why this is necessary.
                     sessionStorage.setItem('easyconnect_admin_key', password);
                     showDashboard();
                 } else {
@@ -753,14 +730,6 @@
             startAutoRefresh();
         }
 
-        
-        function stopAutoRefresh() {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
-            }
-        }
-
         function logout() {
             stopAutoRefresh();
             sessionStorage.removeItem('easyconnect_enterprise_auth');
@@ -776,7 +745,10 @@
                 globalCustomers = result.customers || [];
                 globalTransactions = result.transactions || [];
 
-                // Update Metrics
+                globalCustomers.forEach(function (c) { c._key = c.customer_code || c.email; });
+
+                await mergeRegisteredCustomers();
+
                 document.getElementById('metric-customers').innerText = globalCustomers.length;
                 const successfulTxs = globalTransactions.filter(t => t.status === 'success');
                 document.getElementById('metric-txs').innerText = successfulTxs.length;
@@ -784,12 +756,6 @@
                 const totalRevenue = successfulTxs.reduce((sum, t) => sum + (t.amount / 100), 0);
                 document.getElementById('metric-revenue').innerText = `₦${totalRevenue.toLocaleString()}`;
 
-                // NEW: pull every customer's wallet balance in one call so the
-                // directory table can show it without one request per row.
-                //await refreshWalletBalances();
-
-                // If the admin is mid-search, keep their filtered view instead
-                // of silently resetting it back to the full list on refresh.
                 const searchBox = document.getElementById('search-box');
                 if (searchBox && searchBox.value.trim()) {
                     filterTable();
@@ -812,35 +778,29 @@
 
             tbody.innerHTML = customers.map(c => {
                 const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed Client';
-                const assignedManager = localStorage.getItem(`mgr_${c.customer_code}`) || 'Okoro Benjamin';
+                const assignedManager = localStorage.getItem(`mgr_${c._key}`) || 'Okoro Benjamin';
                 const balance = getWalletBalanceNaira(c);
                 return `
-                    <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${c.customer_code}')">
+    <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${c._key}')">
     <td class="p-4 font-semibold text-white">${fullName}</td>
     <td class="p-4 text-slate-300">${c.email || 'N/A'}</td>
     <td class="p-4 text-slate-400">${c.phone || 'N/A'}</td>
     <td class="p-4 font-mono text-indigo-400">${c.customer_code || 'N/A'}</td>
-    
-    <!-- FIX 1: Just use ${balance} -->
     <td class="p-4 font-semibold text-emerald-400">${balance}</td>
-    
     <td class="p-4"><span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">${assignedManager}</span></td>
-    
-    <!-- FIX 2: Use created_at safely -->
     <td class="p-4 text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</td>
-    
     <td class="p-4 text-right" onclick="event.stopPropagation()">
         <div class="flex justify-end gap-2 flex-wrap">
-            <button onclick="openDrawer('${c.customer_code}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition">
+            <button onclick="openDrawer('${c._key}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition">
                 View Profile
             </button>
-            <button onclick="openSendMoneyModal('customer', '${c.customer_code}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Send Money">
+            <button onclick="openSendMoneyModal('customer', '${c.customer_code || ''}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Send Money">
                 <i class="fa-solid fa-money-bill-transfer"></i>
             </button>
             <button onclick="openDebitWalletModal('${c.email}')" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Debit Wallet">
                 <i class="fa-solid fa-minus"></i>
             </button>
-            <button onclick="deleteCustomer('${c.customer_code}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Delete Customer">
+            <button onclick="deleteCustomer('${c.customer_code || ''}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Delete Customer">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>
@@ -853,7 +813,6 @@
         function renderChart(transactions) {
             const ctx = document.getElementById('revenueChart').getContext('2d');
             
-            // Group transactions by date
             const dateMap = {};
             transactions.forEach(t => {
                 if(t.status === 'success') {
@@ -891,27 +850,27 @@
             });
         }
 
-        function openDrawer(customerCode) {
-            selectedCustomerCode = customerCode;
-            const customer = globalCustomers.find(c => c.customer_code === customerCode);
+        function openDrawer(key) {
+            const customer = globalCustomers.find(c => c._key === key || c.customer_code === key || c.email === key);
             if (!customer) return;
 
+            selectedCustomerKey = customer._key;
+            selectedCustomerCode = customer.customer_code || null;
+            selectedCustomerEmail = customer.email || null;
+
             document.getElementById('drawer-name').innerText = `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Client Profile';
-            document.getElementById('drawer-code').innerText = customer.customer_code;
+            document.getElementById('drawer-code').innerText = customer.customer_code || 'No Paystack profile yet';
             document.getElementById('drawer-email').innerText = customer.email;
             document.getElementById('drawer-firstname').value = customer.first_name || '';
             document.getElementById('drawer-lastname').value = customer.last_name || '';
             document.getElementById('drawer-phone').value = customer.phone || '';
-            cancelCustomerEdit(); // always open in read-only mode, even if a previous edit was left open
+            cancelCustomerEdit();
 
-            // NEW: reflect the latest known wallet balance in the drawer header.
-            // Wallets are keyed by email (customers has no customer_code column).
-            document.getElementById('drawer-wallet-balance').innerText = `₦${getWalletBalanceNaira(customer.email).toLocaleString()}`;
+            document.getElementById('drawer-wallet-balance').innerText = getWalletBalanceNaira(customer);
 
-            const currentMgr = localStorage.getItem(`mgr_${customer.customer_code}`) || 'Okoro Benjamin';
+            const currentMgr = localStorage.getItem(`mgr_${customer._key}`) || 'Okoro Benjamin';
             document.getElementById('drawer-manager-select').value = currentMgr;
 
-            // Filter transactions for this customer email
             const customerTxs = globalTransactions.filter(t => t.customer && t.customer.email === customer.email);
             const txListEl = document.getElementById('drawer-tx-list');
             
@@ -935,9 +894,10 @@
         function closeDrawer() {
             document.getElementById('customer-drawer').classList.add('hidden');
             selectedCustomerCode = null;
+            selectedCustomerEmail = null;
+            selectedCustomerKey = null;
         }
 
-        // ==================== NEW FEATURE: Edit customer info (First/Last name, Phone) ====================
         function enterCustomerEditMode() {
             ['drawer-firstname', 'drawer-lastname', 'drawer-phone'].forEach(id => {
                 document.getElementById(id).disabled = false;
@@ -949,7 +909,7 @@
         }
 
         function cancelCustomerEdit() {
-            const customer = globalCustomers.find(c => c.customer_code === selectedCustomerCode);
+            const customer = globalCustomers.find(c => c._key === selectedCustomerKey);
             if (customer) {
                 document.getElementById('drawer-firstname').value = customer.first_name || '';
                 document.getElementById('drawer-lastname').value = customer.last_name || '';
@@ -968,6 +928,12 @@
             const errEl = document.getElementById('drawer-edit-error');
             errEl.classList.add('hidden');
 
+            if (!selectedCustomerCode) {
+                errEl.innerText = "This customer has no linked Paystack profile yet, so profile edits aren't available for them.";
+                errEl.classList.remove('hidden');
+                return;
+            }
+
             const firstName = document.getElementById('drawer-firstname').value.trim();
             const lastName = document.getElementById('drawer-lastname').value.trim();
             const phone = document.getElementById('drawer-phone').value.trim();
@@ -977,7 +943,6 @@
                 errEl.classList.remove('hidden');
                 return;
             }
-            if (!selectedCustomerCode) return;
 
             try {
                 const res = await fetch('/api/customers', {
@@ -996,11 +961,10 @@
                     throw new Error(result.message || 'Failed to update customer.');
                 }
 
-                // Update local state with the confirmed values Paystack returned,
-                // so the table and drawer both reflect the real saved data.
                 const idx = globalCustomers.findIndex(c => c.customer_code === selectedCustomerCode);
                 if (idx !== -1) {
                     globalCustomers[idx] = { ...globalCustomers[idx], ...result.customer };
+                    globalCustomers[idx]._key = globalCustomers[idx].customer_code || globalCustomers[idx].email;
                 }
                 document.getElementById('drawer-name').innerText = `${firstName} ${lastName}`.trim() || 'Client Profile';
                 renderTable(globalCustomers);
@@ -1012,9 +976,9 @@
         }
 
         function saveCustomerManager() {
-            if (!selectedCustomerCode) return;
+            if (!selectedCustomerKey) return;
             const selectedMgr = document.getElementById('drawer-manager-select').value;
-            localStorage.setItem(`mgr_${selectedCustomerCode}`, selectedMgr);
+            localStorage.setItem(`mgr_${selectedCustomerKey}`, selectedMgr);
             alert(`Successfully assigned manager to customer.`);
             closeDrawer();
             renderTable(globalCustomers);
@@ -1028,15 +992,11 @@
             const query = document.getElementById('search-box').value.toLowerCase();
             const filtered = globalCustomers.filter(c => {
                 const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
-                return name.includes(query) || c.email.toLowerCase().includes(query);
+                return name.includes(query) || (c.email || '').toLowerCase().includes(query);
             });
             renderTable(filtered);
         }
 
-        // ==================== NEW FEATURE: Shared admin auth header ====================
-        // Attached to every create/delete/send-money/debit-wallet request so
-        // /api/_lib/requireAdmin.js can verify the caller is actually logged in,
-        // instead of those endpoints being reachable by anyone who finds the URL.
         function adminHeaders() {
             return {
                 'Content-Type': 'application/json',
@@ -1044,7 +1004,6 @@
             };
         }
 
-        // ==================== NEW FEATURE: Sidebar navigation between Profile / Customers / Managers / Settings ====================
         function showSection(name) {
             ['profile', 'customers', 'managers', 'settings'].forEach(function (key) {
                 var el = document.getElementById('section-' + key);
@@ -1076,7 +1035,6 @@
             }
         }
 
-        // ==================== NEW FEATURE: Manager roles & duties ====================
         var MANAGER_ROLES = [
             { value: 'Super Admin', duty: 'Full system access - manages all managers, customers, and settings.' },
             { value: 'Lead Enterprise Manager', duty: 'Oversees high-value enterprise accounts and manager assignments.' },
@@ -1091,7 +1049,6 @@
                 var raw = localStorage.getItem('ec_managers');
                 if (raw) return JSON.parse(raw);
             } catch (e) {}
-            // Seed with the two managers already shown in the existing Manager Assignment panel
             var seeded = [
                 { id: 'mgr_okoro', name: 'Okoro Benjamin', email: '', role: 'Super Admin' },
                 { id: 'mgr_chidinma', name: 'Chidinma I', email: '', role: 'Customer Success Representative' }
@@ -1204,7 +1161,6 @@
             syncManagerSelectOptions();
         }
 
-        // ==================== NEW FEATURE: Add / Delete customers directly ====================
         function openAddCustomerModal() {
             document.getElementById('add-customer-modal').classList.remove('hidden');
         }
@@ -1249,9 +1205,7 @@
                     throw new Error(result.message || 'Failed to create customer.');
                 }
 
-                // Use the REAL customer returned by Paystack (via create-customer.js),
-                // not a locally invented code - later delete/send-money actions on this
-                // row need the genuine customer_code to work.
+                result.customer._key = result.customer.customer_code || result.customer.email;
                 globalCustomers.unshift(result.customer);
                 renderTable(globalCustomers);
                 document.getElementById('metric-customers').innerText = globalCustomers.length;
@@ -1266,12 +1220,12 @@
         }
 
         async function deleteCustomer(customerCode) {
-            if (!customerCode) return;
+            if (!customerCode) {
+                alert("This customer has no linked Paystack profile, so they can't be deleted from here yet.");
+                return;
+            }
             if (!confirm('Delete this customer? This cannot be undone.')) return;
 
-            // Attempt to persist server-side if an endpoint exists; the row is removed from
-            // the local view regardless so the admin isn't blocked by a missing backend.
-            // This calls the consolidated /api/customers endpoint with method: 'DELETE'.
             try {
                 var res = await fetch('/api/customers', {
                     method: 'DELETE',
@@ -1295,11 +1249,13 @@
             }
         }
 
-        // ==================== NEW FEATURE: Send money to a customer or a manager ====================
         var sendMoneyTarget = null;
 
         function openSendMoneyModal(type, id) {
-            if (!id) return;
+            if (!id) {
+                alert("This customer has no linked Paystack profile yet, so Send Money isn't available for them.");
+                return;
+            }
             var name = '';
             if (type === 'customer') {
                 var c = globalCustomers.find(function (x) { return x.customer_code === id; });
@@ -1385,61 +1341,78 @@
             }
         }
 
-        // ==================== NEW FEATURE: Debit a customer's wallet for a service request ====================
-        // Wallet balances live directly on customers.wallet_balance in Supabase (see
-        // wallet-schema.sql) and are keyed by EMAIL, since the customers table has no
-        // customer_code column. Debits go through /api/debit-wallet.js, which atomically
-        // checks-and-deducts server-side (via the debit_customer_wallet() Postgres
-        // function) so two admins debiting the same customer at once can never push a
-        // wallet negative, and logs each debit into service_payments.
-        //
-        // Amounts here are in NAIRA end-to-end (no kobo conversion) - unlike Paystack
-        // transaction amounts elsewhere in this app, wallet_balance is stored as a plain
-        // decimal naira figure (see the note in wallet-schema.sql).
-        var walletBalances = {};       // email -> wallet_balance in naira (cached client-side)
+        // ==================== Debit a customer's wallet for a service request ====================
+        // Wallet balances live directly on customers.wallet_balance in Supabase and are
+        // keyed by EMAIL. getWalletBalanceNaira() ALWAYS takes a customer object (never a
+        // bare email string) and formats its .wallet_balance - this is the single source
+        // of truth everywhere in the dashboard, replacing the old broken dual-signature
+        // version and the side "walletBalances" map that nothing kept in sync.
         var debitWalletTarget = null;
 
         function getWalletBalanceNaira(customer) {
-  // Safely pull the balance directly from the Supabase customer object
-  const balance = Number(customer.wallet_balance) || 0;
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(balance);
-}
-        
+            const balance = customer && !isNaN(Number(customer.wallet_balance)) ? Number(customer.wallet_balance) : 0;
+            return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(balance);
+        }
 
-        async function refreshWalletBalances() {
+        function findCustomerByEmail(email) {
+            if (!email) return null;
+            return globalCustomers.find(function (c) { return (c.email || '').toLowerCase() === email.toLowerCase(); }) || null;
+        }
+
+        // NEW: pulls every REGISTERED customer straight from Supabase (customers table)
+        // and merges them into globalCustomers. This is what makes new signups show up
+        // even before they ever touch Paystack, and keeps every wallet_balance live.
+        async function mergeRegisteredCustomers() {
             try {
                 var res = await fetch('/api/debit-wallet', { headers: adminHeaders() });
                 var result = await safeJson(res);
-                if (result && result.status && Array.isArray(result.wallets)) {
-                    var map = {};
-                    result.wallets.forEach(function (w) {
-                        if (w.email) map[w.email.toLowerCase()] = Number(w.wallet_balance) || 0;
-                    });
-                    walletBalances = map;
+                if (!result || !result.status || !Array.isArray(result.customers)) {
+                    console.log('Notice: could not load registered customers/wallets.', result);
+                    return;
                 }
-            } catch (e) {
-                // Non-fatal: wallet balances just show as ₦0.00 until this succeeds.
-                console.log('Notice: could not load wallet balances.', e);
-            }
-        }
 
-        // Convenience wrapper for buttons that only have selectedCustomerCode in scope
-        // (the drawer) - looks up the matching email, then opens the modal by email.
-        function openDebitWalletModalByCode(customerCode) {
-            var c = globalCustomers.find(function (x) { return x.customer_code === customerCode; });
-            if (!c) return;
-            openDebitWalletModal(c.email);
+                result.customers.forEach(function (sc) {
+                    if (!sc.email) return;
+                    var existing = findCustomerByEmail(sc.email);
+
+                    if (existing) {
+                        // Already known via Paystack - sync the live wallet balance and
+                        // fill in any contact fields Paystack didn't have.
+                        existing.wallet_balance = Number(sc.wallet_balance) || 0;
+                        existing.first_name = existing.first_name || sc.first_name;
+                        existing.last_name = existing.last_name || sc.last_name;
+                        existing.phone = existing.phone || sc.phone;
+                        existing.created_at = existing.created_at || sc.created_at;
+                        existing._key = existing.customer_code || existing.email;
+                    } else {
+                        // Brand-new signup with no matching Paystack customer yet - show
+                        // them anyway instead of leaving them invisible on the dashboard.
+                        globalCustomers.push({
+                            customer_code: null,
+                            first_name: sc.first_name,
+                            last_name: sc.last_name,
+                            email: sc.email,
+                            phone: sc.phone,
+                            created_at: sc.created_at,
+                            wallet_balance: Number(sc.wallet_balance) || 0,
+                            _key: sc.email
+                        });
+                    }
+                });
+            } catch (e) {
+                console.log('Notice: could not sync registered customers.', e);
+            }
         }
 
         function openDebitWalletModal(email) {
             if (!email) return;
-            var c = globalCustomers.find(function (x) { return x.email === email; });
+            var c = findCustomerByEmail(email);
             var name = c ? (((c.first_name || '') + ' ' + (c.last_name || '')).trim() || c.email) : email;
 
             debitWalletTarget = { email: email, name: name };
 
             document.getElementById('debit-wallet-recipient').innerText = name;
-            document.getElementById('debit-wallet-balance').innerText = '₦' + getWalletBalanceNaira(email).toLocaleString();
+            document.getElementById('debit-wallet-balance').innerText = getWalletBalanceNaira(c);
             document.getElementById('debit-wallet-amount').value = '';
             document.getElementById('debit-wallet-reason').value = '';
             document.getElementById('debit-wallet-error').classList.add('hidden');
@@ -1451,8 +1424,9 @@
                 .then(safeJson)
                 .then(function (result) {
                     if (result && result.status) {
-                        walletBalances[email.toLowerCase()] = Number(result.wallet_balance) || 0;
-                        document.getElementById('debit-wallet-balance').innerText = '₦' + getWalletBalanceNaira(email).toLocaleString();
+                        var balanceNum = Number(result.wallet_balance) || 0;
+                        if (c) c.wallet_balance = balanceNum;
+                        document.getElementById('debit-wallet-balance').innerText = getWalletBalanceNaira(c || { wallet_balance: balanceNum });
                     }
                 })
                 .catch(function (e) { console.log('Notice: could not refresh single wallet balance.', e); });
@@ -1497,17 +1471,18 @@
                     throw new Error(result.message || 'Debit failed. The customer may not have enough wallet balance.');
                 }
 
-                // The API returns the confirmed new balance (in naira) after the debit.
-                walletBalances[debitWalletTarget.email.toLowerCase()] = Number(result.wallet_balance) || 0;
-                document.getElementById('debit-wallet-balance').innerText = '₦' + getWalletBalanceNaira(debitWalletTarget.email).toLocaleString();
+                var newBalance = Number(result.wallet_balance) || 0;
+                var targetCustomer = findCustomerByEmail(debitWalletTarget.email);
+                if (targetCustomer) targetCustomer.wallet_balance = newBalance;
+
+                document.getElementById('debit-wallet-balance').innerText = getWalletBalanceNaira(targetCustomer || { wallet_balance: newBalance });
 
                 succEl.innerText = result.message || ('₦' + amount.toLocaleString() + ' debited from ' + debitWalletTarget.name + '\'s wallet.');
                 succEl.classList.remove('hidden');
 
                 renderTable(globalCustomers);
-                var selectedCustomer = globalCustomers.find(function (c) { return c.customer_code === selectedCustomerCode; });
-                if (selectedCustomer && selectedCustomer.email === debitWalletTarget.email) {
-                    document.getElementById('drawer-wallet-balance').innerText = '₦' + getWalletBalanceNaira(debitWalletTarget.email).toLocaleString();
+                if (selectedCustomerEmail && selectedCustomerEmail.toLowerCase() === debitWalletTarget.email.toLowerCase()) {
+                    document.getElementById('drawer-wallet-balance').innerText = getWalletBalanceNaira(targetCustomer || { wallet_balance: newBalance });
                 }
 
                 setTimeout(closeDebitWalletModal, 1500);
@@ -1520,7 +1495,6 @@
             }
         }
 
-        // ==================== NEW FEATURE: Profile section ====================
         function loadProfileSection() {
             var name = localStorage.getItem('ec_admin_name') || 'Administrator';
             var email = localStorage.getItem('ec_admin_email') || '';
@@ -1542,7 +1516,6 @@
             setTimeout(function () { successEl.classList.add('hidden'); }, 2000);
         }
 
-        // ==================== NEW FEATURE: Settings section ====================
         function loadSettingsSection() {
             var notifyEnabled = localStorage.getItem('ec_notify_enabled') !== 'false';
             document.getElementById('settings-notify-toggle').checked = notifyEnabled;
@@ -1565,9 +1538,6 @@
             alert('Manager assignments cleared.');
         }
 
-        // Initialize the new panels as soon as the script runs. This is safe even before
-        // login: the elements simply stay hidden behind the login screen until
-        // showDashboard() reveals #dashboard-content.
         renderManagersList();
         syncManagerSelectOptions();
     </script>

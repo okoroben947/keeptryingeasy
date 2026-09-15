@@ -12,8 +12,8 @@
 //
 // Routes (all require the same "x-admin-password" header already used by
 // /api/customers and /api/send-money):
-//   GET  /api/debit-wallet                    -> { status: true, wallets: [{email, wallet_balance}, ...] }
-//   GET  /api/debit-wallet?email=a@b.com       -> { status: true, email, wallet_balance }
+//   GET  /api/debit-wallet                    -> { status: true, customers: [{email, first_name, last_name, phone, wallet_balance, created_at}, ...] }
+//   GET  /api/debit-wallet?email=a@b.com       -> { status: true, email, wallet_balance, customer: {...full row} }
 //   POST /api/debit-wallet { email, amount, service_name } -> { status: true, wallet_balance, reference }
 //
 // NOTE ON UNITS: amount is treated as NAIRA end-to-end here (no *100/÷100 conversion),
@@ -64,7 +64,7 @@ async function handleGet(req, res) {
     if (email) {
         const { data, error } = await supabase
             .from('customers')
-            .select('email, wallet_balance')
+            .select('email, first_name, last_name, phone, wallet_balance, created_at')
             .eq('email', email)
             .maybeSingle();
 
@@ -78,19 +78,23 @@ async function handleGet(req, res) {
         return res.status(200).json({
             status: true,
             email: data.email,
-            wallet_balance: Number(data.wallet_balance) || 0
+            wallet_balance: Number(data.wallet_balance) || 0,
+            customer: data
         });
     }
 
     const { data, error } = await supabase
         .from('customers')
-        .select('email, wallet_balance');
+        .select('email, first_name, last_name, phone, wallet_balance, created_at');
 
     if (error) {
-        return res.status(500).json({ status: false, message: 'Failed to fetch wallets.', detail: error.message });
+        return res.status(500).json({ status: false, message: 'Failed to fetch registered customers.', detail: error.message });
     }
 
-    return res.status(200).json({ status: true, wallets: data || [] });
+    // NEW: returned as "customers" (full profile rows), not just "wallets" - this is what
+    // lets the dashboard show every registered signup, including ones that don't have a
+    // matching Paystack customer_code yet. See mergeRegisteredCustomers() in index.html.
+    return res.status(200).json({ status: true, customers: data || [] });
 }
 
 // POST: debit a customer's wallet for a service request, and record it in service_payments.
