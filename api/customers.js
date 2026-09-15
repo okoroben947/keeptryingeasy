@@ -1,35 +1,55 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
-// Initialize Supabase client
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ status: false, error: 'Method not allowed' });
   }
 
+  // Diagnostic check for environment variables
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ 
+      status: false, 
+      error: 'Server configuration error: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.' 
+    });
+  }
+
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    return res.status(500).json({ 
+      status: false, 
+      error: 'Server configuration error: Missing PAYSTACK_SECRET_KEY environment variable.' 
+    });
+  }
+
   try {
-    // 1. Fetch all customers from Paystack (with pagination support)
+    // Initialize Supabase client inside the handler to prevent cold start crash propagation
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+    // 1. Fetch all customers from Paystack (with pagination support & fallback)
     let paystackCustomers = [];
-    let page = 1;
-    let fetchMore = true;
+    try {
+      let page = 1;
+      let fetchMore = true;
 
-    while (fetchMore) {
-      const paystackResponse = await axios.get(`https://api.paystack.co/customer?perPage=50&page=${page}`, {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+      while (fetchMore) {
+        const paystackResponse = await axios.get(`https://api.paystack.co/customer?perPage=50&page=${page}`, {
+          headers: {
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+          }
+        });
+        
+        const data = paystackResponse.data?.data || [];
+        paystackCustomers = paystackCustomers.concat(data);
+
+        if (data.length < 50 || page >= 5) { // Capped safely at 5 pages (250 users) for speed
+          fetchMore = false;
+        } else {
+          page++;
         }
-      });
-      
-      const data = paystackResponse.data.data || [];
-      paystackCustomers = paystackCustomers.concat(data);
-
-      if (data.length < 50 || page >= 10) { // Safety break cap at 10 pages / 500 customers
-        fetchMore = false;
-      } else {
-        page++;
       }
+    } catch (paystackErr) {
+      console.error('Paystack API fetch warning:', paystackErr.response?.data || paystackErr.message);
+      // Proceed even if Paystack fails so Supabase data can still render
     }
 
     // 2. Fetch all wallet records from Supabase
@@ -39,25 +59,18 @@ export default async function handler(req, res) {
 
     if (walletError) {
       console.error('Supabase wallet fetch error:', walletError);
+      throw new Error(`Supabase error: ${walletError.message}`);
     }
 
     const wallets = walletsData || [];
 
-    // 3. Create comprehensive lookup maps for wallets (matching by email, customer_code, or ID)
+    // 3. Create comprehensive lookup maps for wallets
     const walletMap = {};
     wallets.forEach(w => {
-      if (w.email) {
-        walletMap[w.email.trim().toLowerCase()] = w;
-      }
-      if (w.customer_code) {
-        walletMap[w.customer_code.trim().toUpperCase()] = w;
-      }
-      if (w.customer_id) {
-        walletMap[w.customer_id.toString().trim()] = w;
-      }
-      if (w.user_id) {
-        walletMap[w.user_id.toString().trim()] = w;
-      }
+      if (w.email) walletMap[w.email.trim().toLowerCase()] = w;
+      if (w.customer_code) walletMap[w.customer_code.trim().toUpperCase()] = w;
+      if (w.customer_id) walletMap[w.customer_id.toString().trim()] = w;
+      if (w.user_id) walletMap[w.user_id.toString().trim()] = w;
     });
 
     // 4. Merge Paystack master directory with Supabase wallets
@@ -69,10 +82,7 @@ export default async function handler(req, res) {
       
       if (emailKey) processedEmails.add(emailKey);
 
-      // Look up wallet balance using any available identifier match
       const matchedWallet = walletMap[emailKey] || walletMap[codeKey] || walletMap[idKey] || {};
-
-      // Determine the correct balance value
       const rawBalance = matchedWallet.balance !== undefined && matchedWallet.balance !== null 
         ? matchedWallet.balance 
         : (matchedWallet.wallet_balance !== undefined ? matchedWallet.wallet_balance : 0);
@@ -84,12 +94,12 @@ export default async function handler(req, res) {
         last_name: customer.last_name || '',
         email: customer.email || '',
         phone: customer.phone || customer.international_format_phone || '',
-        wallet_balance: Number(rawBalance).toFixed(2),
+        wallet_balance: Number(rawBalance || 0).toFixed(2),
         created_at: customer.createdAt || customer.created_at || new Date().toISOString()
       };
     });
 
-    // 5. Append any Supabase wallet users who exist in your database but are missing on Paystack
+    // 5. Append Supabase-only records
     wallets.forEach(w => {
       const wEmail = w.email ? w.email.trim().toLowerCase() : '';
       if (wEmail && !processedEmails.has(wEmail)) {
@@ -103,7 +113,7 @@ export default async function handler(req, res) {
           last_name: w.last_name || '',
           email: w.email || '',
           phone: w.phone || '',
-          wallet_balance: Number(rawBalance).toFixed(2),
+          wallet_balance: Number(rawBalance || 0).toFixed(2),
           created_at: w.created_at || new Date().toISOString()
         });
       }
@@ -116,10 +126,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error fetching customers/wallets:', error.response?.data || error.message);
+    console.error('Critical Handler Exception:', error);
     return res.status(500).json({ 
       status: false, 
-      error: 'Failed to fetch customer records',
+      error: 'Failed to fetch customer records due to server exception',
       details: error.message 
     });
   }
