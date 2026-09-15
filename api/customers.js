@@ -24,12 +24,21 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res) {
   try {
-    const [customers, transactions] = await Promise.all([
-      fetchAllPages('/customer'),
-      fetchAllPages('/transaction')
-    ]);
+    // 1. Fetch transactions from Paystack
+    const transactions = await fetchAllPages('/transaction');
 
-    const visibleCustomers = await filterRemovedCustomers(customers);
+    // 2. Fetch customers and their wallet balances directly from Supabase (source of truth)
+    const supabase = getSupabaseAdmin();
+    const { data: dbCustomers, error: dbError } = await supabase
+      .from('customers')
+      .select('*');
+
+    if (dbError) {
+      throw new Error(`Failed to fetch customers from database: ${dbError.message}`);
+    }
+
+    // 3. Filter out removed customers if table exists
+    const visibleCustomers = await filterRemovedCustomers(dbCustomers || []);
 
     return res.status(200).json({
       status: true,
@@ -40,7 +49,7 @@ async function handleGet(req, res) {
     console.error('get-customers error:', err);
     return res.status(502).json({
       status: false,
-      message: err.message || 'Failed to fetch data from Paystack.'
+      message: err.message || 'Failed to fetch customer data.'
     });
   }
 }
@@ -67,6 +76,17 @@ async function handlePost(req, res) {
 
     const customer = paystackRes.data;
 
+    // Also ensure the customer is registered in Supabase with a default wallet balance if needed
+    const supabase = getSupabaseAdmin();
+    await supabase.from('customers').upsert({
+      email: customer.email,
+      first_name: customer.first_name,
+      last_name: customer.last_name,
+      phone: customer.phone,
+      customer_code: customer.customer_code,
+      wallet_balance: 0
+    }, { onConflict: 'email' });
+
     return res.status(200).json({
       status: true,
       message: 'Customer created successfully.',
@@ -76,6 +96,7 @@ async function handlePost(req, res) {
         last_name: customer.last_name,
         email: customer.email,
         phone: customer.phone,
+        wallet_balance: 0,
         createdAt: customer.createdAt
       }
     });
@@ -175,6 +196,7 @@ function shapeCustomer(c) {
     last_name: c.last_name,
     email: c.email,
     phone: c.phone,
+    wallet_balance: Number(c.wallet_balance) || 0, // Properly maps the wallet balance
     createdAt: c.createdAt || c.created_at
   };
 }
