@@ -1,44 +1,35 @@
 // /api/debit-wallet.js
-//
-// Debits a customer's wallet balance for a service request, against your REAL schema:
-//   customers.wallet_balance   - the live balance (in NAIRA - see NOTE below)
-//   customers.email            - natural key (customers has no customer_code column)
-//   service_payments           - ledger row written for every debit
-//
-// Depends on the debit_customer_wallet() Postgres function from wallet-schema.sql,
-// which does the balance check + deduction + ledger insert atomically in one
-// transaction, so two simultaneous debits against the same customer can never both
-// succeed against a balance that only covers one of them.
-//
-// Routes (all require the same "x-admin-password" header already used by
-// /api/customers and /api/send-money):
-//   GET  /api/debit-wallet                    -> { status: true, customers: [{email, first_name, last_name, phone, wallet_balance, created_at}, ...] }
-//   GET  /api/debit-wallet?email=a@b.com       -> { status: true, email, wallet_balance, customer: {...full row} }
-//   POST /api/debit-wallet { email, amount, service_name } -> { status: true, wallet_balance, reference }
-//
-// NOTE ON UNITS: amount is treated as NAIRA end-to-end here (no *100/÷100 conversion),
-// unlike Paystack transaction amounts elsewhere in this app which are in kobo. This
-// matches the "0.00" decimal formatting seen on customers.wallet_balance. If a real
-// top-up later reveals the column is actually in kobo, add a single conversion step
-// here (multiply incoming `amount` by 100 before calling the RPC, divide the returned
-// balance by 100 before responding) rather than changing the SQL function's units.
-//
-// NOTE ON AUTH: this assumes a shared helper at ./_lib/requireAdmin.js, the same one
-// referenced by your existing /api/customers.js and /api/send-money.js. If that
-// helper's signature differs, adjust the requireAdmin(req) call below to match it.
 
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from './_lib/requireAdmin.js';
 
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY // service role key required: bypasses RLS to manage wallets server-side
-);
+// Lazy initialize Supabase client to prevent top-level crashes if env vars are missing
+function getSupabaseClient() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!url || !key) {
+        throw new Error('Server misconfiguration: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+    }
+
+    return createClient(url, key);
+}
 
 export default async function handler(req, res) {
-    // ---- Auth: every request here touches money, so admin auth is mandatory ----
-    if (!requireAdmin(req)) {
-        return res.status(401).json({ status: false, message: 'Unauthorized. Missing or invalid admin credentials.' });
+    // 1. Enable CORS for cross-origin dashboard requests
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-password');
+
+    // Handle browser CORS preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    // 2. Auth: Pass both req AND res to requireAdmin (requireAdmin writes response directly on failure)
+    if (!requireAdmin(req, res)) {
+        return; // requireAdmin has already sent a 401 or 500 response
     }
 
     try {
@@ -48,6 +39,7 @@ export default async function handler(req, res) {
         if (req.method === 'POST') {
             return await handlePost(req, res);
         }
+        
         res.setHeader('Allow', 'GET, POST');
         return res.status(405).json({ status: false, message: `Method ${req.method} not allowed.` });
     } catch (err) {
@@ -56,9 +48,9 @@ export default async function handler(req, res) {
     }
 }
 
-// GET: either every customer's wallet balance (for the dashboard table) or a single
-// customer's freshest balance (used when opening the Debit Wallet modal).
+// GET: Fetch single customer's balance or all registered customers
 async function handleGet(req, res) {
+    const supabase = getSupabaseClient();
     const { email } = req.query || {};
 
     if (email) {
@@ -91,14 +83,12 @@ async function handleGet(req, res) {
         return res.status(500).json({ status: false, message: 'Failed to fetch registered customers.', detail: error.message });
     }
 
-    // NEW: returned as "customers" (full profile rows), not just "wallets" - this is what
-    // lets the dashboard show every registered signup, including ones that don't have a
-    // matching Paystack customer_code yet. See mergeRegisteredCustomers() in index.html.
     return res.status(200).json({ status: true, customers: data || [] });
 }
 
-// POST: debit a customer's wallet for a service request, and record it in service_payments.
+// POST: Execute atomic debit RPC function
 async function handlePost(req, res) {
+    const supabase = getSupabaseClient();
     const { email, amount, service_name, reason } = req.body || {};
 
     if (!email || typeof email !== 'string') {
@@ -110,8 +100,6 @@ async function handlePost(req, res) {
         return res.status(400).json({ status: false, message: 'A valid amount greater than zero is required.' });
     }
 
-    // Accept either field name from the frontend; service_payments.service_name is what
-    // actually gets stored, but "reason" is kept as a fallback for compatibility.
     const serviceName = (service_name && String(service_name).trim())
         || (reason && String(reason).trim())
         || 'Service request';
@@ -125,8 +113,6 @@ async function handlePost(req, res) {
         .single();
 
     if (error) {
-        // The SQL function raises friendly exception text for "no customer found" and
-        // "insufficient balance" - surface that directly instead of a generic 500.
         const message = error.message && error.message.toLowerCase().includes('insufficient')
             ? 'Insufficient wallet balance for this debit.'
             : (error.message || 'Failed to debit wallet.');
@@ -136,8 +122,8 @@ async function handlePost(req, res) {
     return res.status(200).json({
         status: true,
         message: `₦${amountNaira.toLocaleString()} debited successfully.`,
-        email: data.email,
-        wallet_balance: Number(data.wallet_balance),
-        reference: data.reference
+        email: data?.email || email,
+        wallet_balance: Number(data?.wallet_balance || 0),
+        reference: data?.reference || null
     });
 }
