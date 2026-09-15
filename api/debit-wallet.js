@@ -1,9 +1,7 @@
 // /api/debit-wallet.js
-
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from './_lib/requireAdmin.js';
 
-// Lazy initialize Supabase client to prevent top-level crashes if env vars are missing
 function getSupabaseClient() {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,20 +14,20 @@ function getSupabaseClient() {
 }
 
 export default async function handler(req, res) {
-    // 1. Enable CORS for cross-origin dashboard requests
+    // Prevent browser caching so stale 0.00 balances are never served
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-password');
 
-    // Handle browser CORS preflight
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    // 2. Auth: Pass both req AND res to requireAdmin (requireAdmin writes response directly on failure)
+    // Admin Authentication Check
     if (!requireAdmin(req, res)) {
-        return; // requireAdmin has already sent a 401 or 500 response
+        return;
     }
 
     try {
@@ -48,45 +46,80 @@ export default async function handler(req, res) {
     }
 }
 
-// GET: Fetch single customer's balance or all registered customers
+// GET: Queries both `customers` and `wallets` tables and merges their data
 async function handleGet(req, res) {
     const supabase = getSupabaseClient();
     const { email } = req.query || {};
 
+    // 1. GET Single Customer + Wallet
     if (email) {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('email, first_name, last_name, phone, wallet_balance, created_at')
-            .eq('email', email)
-            .maybeSingle();
+        const [customerRes, walletRes] = await Promise.all([
+            supabase.from('customers').select('*').eq('email', email).maybeSingle(),
+            supabase.from('wallets').select('*').eq('email', email).maybeSingle()
+        ]);
 
-        if (error) {
-            return res.status(500).json({ status: false, message: 'Failed to fetch wallet balance.', detail: error.message });
+        if (customerRes.error) {
+            return res.status(500).json({ status: false, message: 'Failed to fetch customer profile.', detail: customerRes.error.message });
         }
-        if (!data) {
-            return res.status(404).json({ status: false, message: `No customer found with email ${email}.` });
+
+        if (!customerRes.data && !walletRes.data) {
+            return res.status(404).json({ status: false, message: `No record found for email ${email}.` });
         }
+
+        const customer = customerRes.data || {};
+        const wallet = walletRes.data || {};
+        const balance = Number(wallet.balance ?? wallet.wallet_balance ?? customer.wallet_balance ?? 0);
 
         return res.status(200).json({
             status: true,
-            email: data.email,
-            wallet_balance: Number(data.wallet_balance) || 0,
-            customer: data
+            email: email,
+            wallet_balance: balance,
+            customer: {
+                ...customer,
+                wallet_balance: balance
+            },
+            wallet
         });
     }
 
-    const { data, error } = await supabase
-        .from('customers')
-        .select('email, first_name, last_name, phone, wallet_balance, created_at');
+    // 2. GET All Customers + Wallets
+    const [customersRes, walletsRes] = await Promise.all([
+        supabase.from('customers').select('*'),
+        supabase.from('wallets').select('*')
+    ]);
 
-    if (error) {
-        return res.status(500).json({ status: false, message: 'Failed to fetch registered customers.', detail: error.message });
+    if (customersRes.error) {
+        return res.status(500).json({ status: false, message: 'Failed to fetch registered customers.', detail: customersRes.error.message });
     }
 
-    return res.status(200).json({ status: true, customers: data || [] });
+    const customers = customersRes.data || [];
+    const wallets = walletsRes.data || [];
+
+    // Map wallet balances by lowercase email for fast lookup
+    const walletMap = new Map();
+    wallets.forEach(w => {
+        if (w.email) {
+            walletMap.set(w.email.toLowerCase(), Number(w.balance ?? w.wallet_balance ?? 0));
+        }
+    });
+
+    // Attach true wallet balances from `wallets` table to customer records
+    const mergedCustomers = customers.map(c => {
+        const customerEmail = (c.email || '').toLowerCase();
+        const liveBalance = walletMap.has(customerEmail)
+            ? walletMap.get(customerEmail)
+            : Number(c.wallet_balance || 0);
+
+        return {
+            ...c,
+            wallet_balance: liveBalance
+        };
+    });
+
+    return res.status(200).json({ status: true, customers: mergedCustomers });
 }
 
-// POST: Execute atomic debit RPC function
+// POST: Execute debit transaction on wallet balance
 async function handlePost(req, res) {
     const supabase = getSupabaseClient();
     const { email, amount, service_name, reason } = req.body || {};
@@ -123,7 +156,7 @@ async function handlePost(req, res) {
         status: true,
         message: `₦${amountNaira.toLocaleString()} debited successfully.`,
         email: data?.email || email,
-        wallet_balance: Number(data?.wallet_balance || 0),
+        wallet_balance: Number(data?.wallet_balance || data?.balance || 0),
         reference: data?.reference || null
     });
 }

@@ -769,45 +769,102 @@
             }
         }
 
-        function renderTable(customers) {
-            const tbody = document.getElementById('customer-table-body');
-            if (customers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">No customer records found.</td></tr>`;
-                return;
-            }
+        // Ensure getWalletBalanceNaira reads live Naira balance directly from c.wallet_balance
+function getWalletBalanceNaira(c) {
+    if (!c) return '₦0.00';
+    
+    // Reads merged wallet_balance from /api/debit-wallet
+    const val = Number(c.wallet_balance ?? c.balance ?? 0);
+    
+    return `₦${val.toLocaleString('en-NG', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    })}`;
+}
 
-            tbody.innerHTML = customers.map(c => {
-                const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed Client';
-                const assignedManager = localStorage.getItem(`mgr_${c._key}`) || 'Okoro Benjamin';
-                const balance = getWalletBalanceNaira(c);
-                return `
-    <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${c._key}')">
-    <td class="p-4 font-semibold text-white">${fullName}</td>
-    <td class="p-4 text-slate-300">${c.email || 'N/A'}</td>
-    <td class="p-4 text-slate-400">${c.phone || 'N/A'}</td>
-    <td class="p-4 font-mono text-indigo-400">${c.customer_code || 'N/A'}</td>
-    <td class="p-4 font-semibold text-emerald-400">${balance}</td>
-    <td class="p-4"><span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">${assignedManager}</span></td>
-    <td class="p-4 text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</td>
-    <td class="p-4 text-right" onclick="event.stopPropagation()">
-        <div class="flex justify-end gap-2 flex-wrap">
-            <button onclick="openDrawer('${c._key}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition">
-                View Profile
-            </button>
-            <button onclick="openSendMoneyModal('customer', '${c.customer_code || ''}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Send Money">
-                <i class="fa-solid fa-money-bill-transfer"></i>
-            </button>
-            <button onclick="openDebitWalletModal('${c.email}')" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Debit Wallet">
-                <i class="fa-solid fa-minus"></i>
-            </button>
-            <button onclick="deleteCustomer('${c.customer_code || ''}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Delete Customer">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        </div>
-    </td>
-</tr>
-`;
-}).join('');
+function renderTable(customers) {
+    const tbody = document.getElementById('customer-table-body');
+    if (!tbody) return;
+
+    if (!Array.isArray(customers) || customers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-500">No customer records found.</td></tr>`;
+        return;
+    }
+    async function loadCRMData() {
+  // Adjust key if your admin password is stored under a different key in localStorage
+  const adminPassword = localStorage.getItem('admin_password') || '';
+
+  try {
+    const response = await fetch(`/api/debit-wallet?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-password': adminPassword
+      },
+      cache: 'no-store' // Forces fresh data and bypasses Vercel 304 caching
+    });
+
+    const result = await response.json();
+
+    if (result.status && Array.isArray(result.customers)) {
+      // Updated to match your function name: renderTable
+      renderTable(result.customers);
+    } else {
+      console.error('Failed to load customers:', result.message);
+    }
+  } catch (error) {
+    console.error('Error fetching CRM data:', error);
+  }
+}
+
+// Automatically load live customer & wallet data when dashboard opens
+document.addEventListener('DOMContentLoaded', loadCRMData);
+
+    tbody.innerHTML = customers.map(c => {
+        // Fallback key handling so openDrawer doesn't fail on raw Supabase objects
+        const key = c._key || c.email || c.id || '';
+        const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unnamed Client';
+        const assignedManager = localStorage.getItem(`mgr_${key}`) || 'Okoro Benjamin';
+        const balance = getWalletBalanceNaira(c);
+
+        return `
+            <tr class="hover:bg-slate-950/40 transition cursor-pointer" onclick="openDrawer('${key}')">
+                <td class="p-4 font-semibold text-white">${escapeHtml(fullName)}</td>
+                <td class="p-4 text-slate-300">${escapeHtml(c.email || 'N/A')}</td>
+                <td class="p-4 text-slate-400">${escapeHtml(c.phone || 'N/A')}</td>
+                <td class="p-4 font-mono text-indigo-400">${escapeHtml(c.customer_code || 'N/A')}</td>
+                <td class="p-4 font-semibold text-emerald-400">${balance}</td>
+                <td class="p-4"><span class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-full font-medium">${escapeHtml(assignedManager)}</span></td>
+                <td class="p-4 text-slate-400">${c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</td>
+                <td class="p-4 text-right" onclick="event.stopPropagation()">
+                    <div class="flex justify-end gap-2 flex-wrap">
+                        <button onclick="openDrawer('${key}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-medium transition">
+                            View Profile
+                        </button>
+                        <button onclick="openSendMoneyModal('customer', '${c.customer_code || ''}')" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Send Money">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                        </button>
+                        <button onclick="openDebitWalletModal('${c.email || ''}')" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Debit Wallet">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <button onclick="deleteCustomer('${c.customer_code || ''}')" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 px-3 py-1.5 rounded-lg font-medium transition" title="Delete Customer">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Utility function to sanitize inputs against XSS and syntax breaks
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
         function renderChart(transactions) {
