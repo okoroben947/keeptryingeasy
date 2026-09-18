@@ -100,6 +100,49 @@
             .whatsapp-float { width: 48px; height: 48px; font-size: 1.5rem; bottom: max(75px, env(safe-area-inset-bottom) + 75px); }
             #scrollTop { width: 42px; height: 42px; font-size: 1.1rem; }
         }
+
+        /* --- Mobile Responsiveness Enhancements (Added) --- */
+        .contact-container > * { 
+            min-width: 0; /* Prevents CSS grid items from expanding beyond screen width and causing overlap */
+            max-width: 100%; 
+        } 
+        form, input, textarea, button { 
+            max-width: 100%; 
+            box-sizing: border-box; 
+        }
+        .msg-form label {
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        @media (max-width: 768px) {
+            .contact-info p { 
+                align-items: flex-start; /* Keeps the icon aligned at the top if address text wraps */
+            }
+            .contact-info p i { 
+                margin-top: 5px; 
+            } 
+        }
+        @media (max-width: 480px) {
+            .contact-info, .msg-form { 
+                padding: 25px 15px; /* Shrinks container padding to give text/inputs more breathing room */
+            }
+            .quick-actions { 
+                flex-direction: column; 
+                width: 100%; 
+            }
+            .quick-btn { 
+                width: 100%; 
+                justify-content: center; 
+                text-align: center;
+            }
+            .msg-form h3, .contact-info h3 { 
+                font-size: 1.35rem; 
+            }
+            input, textarea { 
+                padding: 14px 12px; 
+            }
+        }
+        /* --------------------------------------------------- */
     </style>
 </head>
 <body>
@@ -218,7 +261,7 @@
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2026-2030 - EasyConnect Group. All Rights Reserved.</p>
-                <p style="color: #ffffff; font-weight: 700;"><i>Powered by:</i>  Innovation</p>
+                <p style="color: #ffffff; font-weight: 700;"><i>Powered by:</i> &nbsp;Innovation</p>
             </div>
         </div>
     </footer>
