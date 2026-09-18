@@ -45,7 +45,6 @@
             .nav-links li { width: 100%; padding: 8px 0; }
             .nav-links.active { right: 0; }
             .hamburger { display: block; }
-            .contact-container { grid-template-columns: 1fr; }
         }
         @media (max-width: 400px) { .logo span { display: none; } }
 
@@ -55,7 +54,13 @@
         .page-hero p { font-size: clamp(1rem, 2.2vw, 1.15rem); color: rgba(255,255,255,0.85); max-width: 640px; margin: 0 auto; }
 
         /* CONTACT */
-        .contact-container { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .contact-container { 
+            display: grid; 
+            grid-template-columns: 1fr; /* Forces vertical stacking */
+            gap: 40px; 
+            max-width: 800px; /* Prevents forms from getting too wide on large screens */
+            margin: 0 auto; /* Centers the content */
+        }
         .contact-info { background: var(--primary); color: #fff; padding: clamp(25px, 4vw, 40px); border-radius: 8px; }
         .contact-info h3 { margin-bottom: 20px; font-size: 1.6rem; }
         .contact-info p { margin-bottom: 15px; display: flex; align-items: center; gap: 15px; font-size: 1.05rem; word-break: break-word; }
@@ -101,9 +106,9 @@
             #scrollTop { width: 42px; height: 42px; font-size: 1.1rem; }
         }
 
-        /* --- Mobile Responsiveness Enhancements (Added) --- */
+        /* Mobile Responsiveness Enhancements */
         .contact-container > * { 
-            min-width: 0; /* Prevents CSS grid items from expanding beyond screen width and causing overlap */
+            min-width: 0; 
             max-width: 100%; 
         } 
         form, input, textarea, button { 
@@ -116,7 +121,7 @@
         }
         @media (max-width: 768px) {
             .contact-info p { 
-                align-items: flex-start; /* Keeps the icon aligned at the top if address text wraps */
+                align-items: flex-start; 
             }
             .contact-info p i { 
                 margin-top: 5px; 
@@ -124,7 +129,7 @@
         }
         @media (max-width: 480px) {
             .contact-info, .msg-form { 
-                padding: 25px 15px; /* Shrinks container padding to give text/inputs more breathing room */
+                padding: 25px 15px; 
             }
             .quick-actions { 
                 flex-direction: column; 
@@ -142,7 +147,6 @@
                 padding: 14px 12px; 
             }
         }
-        /* --------------------------------------------------- */
     </style>
 </head>
 <body>
@@ -180,7 +184,7 @@
     <section id="contact">
         <div class="container">
             <div class="contact-container">
-                <div class="contact-info" data-aos="fade-right">
+                <div class="contact-info" data-aos="fade-up">
                     <h3>Contact Information</h3>
                     <p><i class="fas fa-map-marker-alt"></i> 2 Chief Fatai Aremu Cl, Apapa, Lagos</p>
                     <p><i class="fas fa-envelope"></i> eazyconnect34@gmail.com</p>
@@ -194,7 +198,7 @@
                     </div>
 
                     <h3 style="margin-top: 40px; margin-bottom: 20px;" id="subscribe">Subscribe to Newsletter</h3>
-                    <!-- FormSubmit Newsletter (same endpoint as original site) -->
+                    <!-- FormSubmit Newsletter -->
                     <form action="https://formsubmit.co/eazyconnect34@gmail.com" method="POST" class="newsletter-form">
                         <input type="hidden" name="_subject" value="New Newsletter Subscription!">
                         <input type="hidden" name="_captcha" value="false">
@@ -203,8 +207,8 @@
                     </form>
                 </div>
 
-                <!-- Message form (same endpoint as original site) -->
-                <div data-aos="fade-left">
+                <!-- Message form -->
+                <div data-aos="fade-up" data-aos-delay="100">
                     <form action="https://hook.eu1.make.com/8te5ewd7acqqqqtng0xbl7dck6gss091" method="POST" class="msg-form">
                         <h3 style="margin-bottom: 20px; color: var(--primary);">Send us a Message</h3>
                         <input type="text" name="name" placeholder="Your Name" required>
