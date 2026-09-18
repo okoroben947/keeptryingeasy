@@ -10,11 +10,6 @@
     <script src="https://js.paystack.co/v1/inline.js"></script>
     
     <style>
-        /* Tell mobile browsers (Android/Samsung "auto dark", iOS smart invert, etc.) that this
-           page already handles its own dark theme. Without this, some mobile browsers forcibly
-           re-theme content and form fields -- injecting a light/white background while the
-           page's own light text color stays as-is, which can make text and data invisible
-           (light text on a light box the browser added on top of our dark background). */
         html {
             color-scheme: dark;
         }
@@ -51,16 +46,12 @@
             cursor: not-allowed;
         }
 
-        /* iOS Safari auto-zooms the whole page on focus if an input's font-size is under 16px,
-           which is what makes layouts look "overlapping"/broken on mobile once the keyboard
-           opens. Forcing 16px on small screens stops the zoom. */
         @media (max-width: 640px) {
             input, select, textarea {
                 font-size: 16px !important;
             }
         }
 
-        /* Smooth touch scrolling for mobile devices */
         body {
             -webkit-overflow-scrolling: touch;
             padding-top: env(safe-area-inset-top);
@@ -103,9 +94,6 @@
         .whatsapp-float:hover { transform: scale(1.08); }
         .whatsapp-float svg { width: 28px; height: 28px; }
 
-        /* ===== Dashboard additions (sidebar, wallet, referral, quick links) =====
-           These are new sections only. The existing Profile Info / Security / Payment
-           History cards keep their original dark styling untouched. */
         .db-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
         .db-sidebar { background: #0f172a; border-right: 1px solid #1e293b; }
         .db-chip { background: #1e293b; border-radius: 9999px; }
@@ -137,11 +125,8 @@
       const SUPABASE_URL = 'https://fhophxqeoeowhgqlihzq.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_moji8A_nvf8TRP1NsGKlyg_jlup6r6d';
 
-      // Public keys are safe to expose in frontend code -- never put your
-      // SECRET key (sk_...) anywhere in this file.
       const PAYSTACK_PUBLIC_KEY = 'pk_live_089c5b9e145ecc8e93ee2329b0079bf1a13c220d';
 
-      // Safe lazy initializer to ensure CDN library loads cleanly
       function getSupabase() {
           if (window.supabaseClient && window.supabaseClient.auth) {
               return window.supabaseClient;
@@ -284,67 +269,67 @@
                 <a href="pricing.html" class="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">View All &rsaquo;</a>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('verify_nin')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">🪪</span>
                     <span class="db-text text-xs font-semibold">Verify NIN</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('verify_bvn')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">💳</span>
                     <span class="db-text text-xs font-semibold">Verify BVN</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('personalization')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-rose-500/15 text-base">🎯</span>
                     <span class="db-text text-xs font-semibold">Personalization</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">✅</span>
                     <span class="db-text text-xs font-semibold">NIN Validation</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('ipe_clearance')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">🤖</span>
                     <span class="db-text text-xs font-semibold">IPE Clearance</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_modification')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">✏️</span>
                     <span class="db-text text-xs font-semibold">NIN Modifications</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('enrollment')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🗂️</span>
                     <span class="db-text text-xs font-semibold">Enrollment</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('birth_attestation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">☀️</span>
                     <span class="db-text text-xs font-semibold">Birth Attestation</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('tax_id')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">💠</span>
                     <span class="db-text text-xs font-semibold">Tax ID (TIN)</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('cac_registration')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
                     <span class="db-text text-xs font-semibold">CAC Registration</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('copyright')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-purple-500/15 text-base">©️</span>
                     <span class="db-text text-xs font-semibold">Copyright</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('trademark')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">®️</span>
                     <span class="db-text text-xs font-semibold">Trademark</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('scuml_fast')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">⚡</span>
                     <span class="db-text text-xs font-semibold">SCUML Fast</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('export_license')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-teal-500/15 text-base">🌍</span>
                     <span class="db-text text-xs font-semibold">Export License</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('international_passport')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">📕</span>
                     <span class="db-text text-xs font-semibold">International Passport</span>
                 </a>
-                <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('state_of_origin')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
                     <span class="db-text text-xs font-semibold">State of Origin</span>
                 </a>
@@ -518,6 +503,108 @@
         </div>
     </div>
 
+    <!-- Service Payment Modal -->
+    <div id="service-payment-modal" class="fixed inset-0 bg-black/70 z-[60] hidden flex items-center justify-center p-4">
+        <div class="db-card w-full max-w-sm p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="db-text font-bold text-sm">Pay for Service</h3>
+                <button type="button" onclick="closeServicePaymentModal()" aria-label="Close" class="db-muted hover:text-white text-xl leading-none cursor-pointer">&times;</button>
+            </div>
+
+            <!-- Main payment options view -->
+            <div id="svc-main-view" class="space-y-4">
+                <div class="bg-slate-950/40 db-card p-4 space-y-1">
+                    <p class="text-[10px] uppercase font-semibold db-muted">Service</p>
+                    <p id="svc-modal-name" class="db-text font-bold text-sm">-</p>
+                    <p class="text-[10px] uppercase font-semibold db-muted mt-2">Price</p>
+                    <p id="svc-modal-price" class="text-lg font-extrabold text-indigo-400">₦0.00</p>
+                </div>
+
+                <div class="flex items-center justify-between text-xs">
+                    <span class="db-muted">Your wallet balance</span>
+                    <span id="svc-modal-wallet-balance" class="db-text font-semibold">₦0.00</span>
+                </div>
+
+                <p id="svc-modal-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <p id="svc-modal-success" class="text-xs text-emerald-400 hidden font-medium"></p>
+
+                <div class="space-y-2">
+                    <button type="button" id="svc-pay-wallet-btn" onclick="payForServiceWithWallet()" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                        Pay with Wallet Balance
+                    </button>
+                    <p id="svc-insufficient-note" class="text-[11px] text-amber-400 hidden">Insufficient wallet balance. Fund your wallet or pay directly below.</p>
+                    <button type="button" onclick="fundWalletFromServiceModal()" class="cursor-pointer w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-2.5 rounded-xl transition text-xs">
+                        Fund Wallet
+                    </button>
+
+                    <div class="flex items-center gap-2 py-1">
+                        <span class="flex-1 h-px bg-slate-800"></span>
+                        <span class="text-[10px] db-muted">OR PAY DIRECTLY</span>
+                        <span class="flex-1 h-px bg-slate-800"></span>
+                    </div>
+
+                    <button type="button" id="svc-pay-paystack-btn" onclick="payForServiceDirect('paystack')" class="cursor-pointer w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                        Pay with Paystack
+                    </button>
+                    <button type="button" onclick="showOpayView()" class="cursor-pointer w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                        Pay with Opay
+                    </button>
+                </div>
+
+                <p class="text-[10px] db-muted text-center">Secured by Paystack</p>
+            </div>
+
+            <!-- Opay manual bank-transfer view -->
+            <div id="svc-opay-view" class="space-y-4 hidden">
+                <button type="button" onclick="showMainView()" class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1">
+                    <span aria-hidden="true">&larr;</span> Back
+                </button>
+
+                <div class="bg-slate-950/40 db-card p-4 space-y-2">
+                    <p class="text-[10px] uppercase font-semibold db-muted">Transfer this exact amount</p>
+                    <p id="svc-opay-amount" class="text-lg font-extrabold text-indigo-400">₦0.00</p>
+                    <p class="text-[11px] db-muted">for <span id="svc-opay-service-name" class="db-text font-semibold">-</span></p>
+                </div>
+
+                <div class="db-card p-4 space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] uppercase font-semibold db-muted">Account Name</p>
+                            <p class="db-text text-sm font-semibold">BENJAMIN IGWE OKORO</p>
+                        </div>
+                        <button type="button" onclick="copyOpayField('BENJAMIN IGWE OKORO', this)" class="cursor-pointer shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition">Copy</button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] uppercase font-semibold db-muted">Bank</p>
+                            <p class="db-text text-sm font-semibold">Opay</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] uppercase font-semibold db-muted">Account Number</p>
+                            <p class="db-text text-sm font-semibold font-mono">7018836989</p>
+                        </div>
+                        <button type="button" onclick="copyOpayField('7018836989', this)" class="cursor-pointer shrink-0 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition">Copy</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Your name on the transfer / transaction ID (optional)</label>
+                    <input type="text" id="svc-opay-note" placeholder="Helps us confirm your payment faster" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <p id="svc-opay-error" class="text-xs text-rose-400 hidden font-medium"></p>
+                <p id="svc-opay-success" class="text-xs text-emerald-400 hidden font-medium"></p>
+
+                <button type="button" id="svc-opay-confirm-btn" onclick="confirmOpayTransfer()" class="cursor-pointer w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                    I've Sent the Money
+                </button>
+                <p class="text-[10px] db-muted text-center">We'll confirm your transfer and activate your service, usually within a few hours.</p>
+            </div>
+        </div>
+    </div>
+
         </div>
     </div>
 
@@ -571,8 +658,6 @@
             renderWalletBalance();
         }
         async function loadWallet(client, user) {
-            // Best-effort: reads from a "wallets" table if your project has one.
-            // If it doesn't exist yet (or the row isn't there), the card just shows defaults.
             let needsVirtualAccount = false;
             try {
                 const { data: wallet } = await client
@@ -604,12 +689,6 @@
             }
         }
 
-        // Automatically asks the backend to generate a Dedicated Virtual
-        // Account for this customer if they don't have one yet. Safe to call
-        // on every page load -- the backend returns the existing account
-        // instead of creating a duplicate if one's already on file, and this
-        // function only gets called at all when loadWallet() detects none
-        // exists yet.
         async function requestVirtualAccount(client) {
             try {
                 const { data: { session } } = await client.auth.getSession();
@@ -637,16 +716,6 @@
             }
         }
 
-        // Subscribes to live changes on this customer's own wallet row, so the
-        // balance updates the instant a payment is credited -- however it was
-        // credited (the browser's own verify call, the webhook running after
-        // the tab closed, a direct bank transfer to their virtual account, or
-        // an admin manually adjusting it). No polling, no manual refresh.
-        //
-        // Requires Realtime to be enabled on the wallets table in Supabase --
-        // see enable-wallet-realtime.sql. Row Level Security still applies to
-        // this subscription: a customer can only ever receive updates for
-        // their own row, never anyone else's.
         function subscribeToWalletChanges(client, user) {
             client
                 .channel(`wallet-changes-${user.id}`)
@@ -720,12 +789,10 @@
             const handler = PaystackPop.setup({
                 key: PAYSTACK_PUBLIC_KEY,
                 email: currentUser.email,
-                amount: Math.round(amount * 100), // Paystack expects kobo
+                amount: Math.round(amount * 100),
                 ref: reference,
                 metadata: { user_id: currentUser.id },
                 callback: function (response) {
-                    // Payment was successful in the browser -- now verify it
-                    // server-side and update the wallet.
                     verifyPaymentOnBackend(response.reference);
                 },
                 onClose: function () {
@@ -737,14 +804,6 @@
             handler.openIframe();
         }
 
-        // Called from Paystack's callback once a payment succeeds in the browser.
-        // This does NOT update the wallet balance directly from the client --
-        // that would mean any customer could open dev tools and credit their
-        // own wallet with any amount they want. Instead it asks our backend
-        // (which re-verifies the payment directly with Paystack, then credits
-        // the wallet using a service-role key Row Level Security can't be
-        // bypassed by) to do the actual crediting, then just reloads the
-        // wallet display with whatever the backend confirms.
         function verifyPaymentOnBackend(reference) {
             const errEl = document.getElementById('fund-wallet-error');
             const payBtn = document.getElementById('fund-wallet-pay-btn');
@@ -899,7 +958,6 @@
                 return;
             }
 
-            // Show the picked image immediately, before the upload finishes.
             const localPreviewUrl = URL.createObjectURL(file);
             setAvatarImage(localPreviewUrl);
             showStatus('Uploading...', 'text-slate-500');
@@ -947,6 +1005,232 @@
             }
         }
 
+        // ==================== NEW: Service catalog + payment modal ====================
+        // Prices are read from Supabase (public.services) rather than hardcoded here, so
+        // you can update pricing any time directly in Supabase without touching this file.
+        // The server independently re-checks this same table on every purchase - it never
+        // trusts a price sent from the browser.
+        let SERVICES_CATALOG = {}; // service_key -> { name, price }
+        let currentServiceKey = null;
+
+        async function loadServicesCatalog(client) {
+            try {
+                const { data, error } = await client.from('services').select('key, name, price').eq('active', true);
+                if (error) throw error;
+                (data || []).forEach(s => {
+                    SERVICES_CATALOG[s.key] = { name: s.name, price: Number(s.price) };
+                });
+            } catch (err) {
+                console.log('Services catalog notice: could not load service prices.', err);
+            }
+        }
+
+        function formatNaira(n) {
+            return `₦${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function showMainView() {
+            document.getElementById('svc-main-view').classList.remove('hidden');
+            document.getElementById('svc-opay-view').classList.add('hidden');
+        }
+
+        function showOpayView() {
+            const svc = SERVICES_CATALOG[currentServiceKey];
+            if (!svc) return;
+            document.getElementById('svc-opay-amount').innerText = formatNaira(svc.price);
+            document.getElementById('svc-opay-service-name').innerText = svc.name;
+            document.getElementById('svc-opay-note').value = '';
+            document.getElementById('svc-opay-error').classList.add('hidden');
+            document.getElementById('svc-opay-success').classList.add('hidden');
+            document.getElementById('svc-main-view').classList.add('hidden');
+            document.getElementById('svc-opay-view').classList.remove('hidden');
+        }
+
+        function copyOpayField(value, btnEl) {
+            navigator.clipboard.writeText(value).then(() => {
+                const original = btnEl.innerText;
+                btnEl.innerText = 'Copied!';
+                setTimeout(() => { btnEl.innerText = original; }, 1500);
+            }).catch(() => {});
+        }
+
+        function openServicePaymentModal(serviceKey) {
+            const svc = SERVICES_CATALOG[serviceKey];
+            if (!svc) {
+                alert('This service is not available for online payment yet. Please contact support.');
+                return;
+            }
+            currentServiceKey = serviceKey;
+
+            document.getElementById('svc-modal-name').innerText = svc.name;
+            document.getElementById('svc-modal-price').innerText = formatNaira(svc.price);
+            document.getElementById('svc-modal-wallet-balance').innerText = formatNaira(walletBalanceValue);
+            document.getElementById('svc-modal-error').classList.add('hidden');
+            document.getElementById('svc-modal-success').classList.add('hidden');
+
+            const canPayWallet = walletBalanceValue >= svc.price;
+            const walletBtn = document.getElementById('svc-pay-wallet-btn');
+            walletBtn.disabled = !canPayWallet;
+            document.getElementById('svc-insufficient-note').classList.toggle('hidden', canPayWallet);
+
+            showMainView();
+            document.getElementById('service-payment-modal').classList.remove('hidden');
+        }
+
+        function closeServicePaymentModal() {
+            document.getElementById('service-payment-modal').classList.add('hidden');
+            currentServiceKey = null;
+        }
+
+        function fundWalletFromServiceModal() {
+            closeServicePaymentModal();
+            openFundWalletModal();
+        }
+
+        async function payForServiceWithWallet() {
+            if (!currentServiceKey || !currentUser) return;
+            const errEl = document.getElementById('svc-modal-error');
+            const succEl = document.getElementById('svc-modal-success');
+            errEl.classList.add('hidden');
+            succEl.classList.add('hidden');
+
+            const btn = document.getElementById('svc-pay-wallet-btn');
+            btn.disabled = true;
+            btn.innerText = 'Processing...';
+
+            try {
+                const client = getSupabase();
+                const { data: { session } } = await client.auth.getSession();
+                const res = await fetch('/api/pay-for-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ service_key: currentServiceKey, method: 'wallet' })
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.status) throw new Error(result.message || 'Payment failed.');
+
+                walletBalanceValue = Number(result.new_balance);
+                renderWalletBalance();
+
+                succEl.innerText = result.message || 'Payment successful.';
+                succEl.classList.remove('hidden');
+                setTimeout(closeServicePaymentModal, 1800);
+            } catch (err) {
+                errEl.innerText = err.message || 'Payment failed. Please try again.';
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+            } finally {
+                btn.innerText = 'Pay with Wallet Balance';
+            }
+        }
+
+        function payForServiceDirect(method) {
+            if (!currentServiceKey || !currentUser) return;
+            const svc = SERVICES_CATALOG[currentServiceKey];
+            const errEl = document.getElementById('svc-modal-error');
+            errEl.classList.add('hidden');
+
+            if (typeof PaystackPop === 'undefined') {
+                errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const btn = document.getElementById('svc-pay-paystack-btn');
+            btn.disabled = true;
+            btn.innerText = 'Opening Paystack...';
+
+            const reference = `svc_${currentServiceKey}_${currentUser.id}_${Date.now()}`;
+
+            const handler = PaystackPop.setup({
+                key: PAYSTACK_PUBLIC_KEY,
+                email: currentUser.email,
+                amount: Math.round(svc.price * 100),
+                ref: reference,
+                metadata: { user_id: currentUser.id, service_key: currentServiceKey },
+                callback: function (response) {
+                    verifyServicePaymentOnBackend(currentServiceKey, 'paystack', response.reference);
+                },
+                onClose: function () {
+                    btn.disabled = false;
+                    btn.innerText = 'Pay with Paystack';
+                }
+            });
+            handler.openIframe();
+        }
+
+        async function verifyServicePaymentOnBackend(serviceKey, method, reference) {
+            const errEl = document.getElementById('svc-modal-error');
+            const succEl = document.getElementById('svc-modal-success');
+            const btn = document.getElementById('svc-pay-paystack-btn');
+
+            try {
+                const client = getSupabase();
+                const { data: { session } } = await client.auth.getSession();
+                const res = await fetch('/api/pay-for-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ service_key: serviceKey, method, reference })
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.status) throw new Error(result.message || 'Could not confirm payment.');
+
+                succEl.innerText = result.message || 'Payment successful.';
+                succEl.classList.remove('hidden');
+                setTimeout(closeServicePaymentModal, 1800);
+            } catch (err) {
+                errEl.innerText = (err.message || 'Payment received, but we could not confirm it yet.') + ` Please contact support with reference: ${reference}`;
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Pay with Paystack';
+            }
+        }
+
+        // Opay: no API integration - this is a manual bank-transfer confirmation.
+        // Submitting here logs a PENDING purchase for the admin to confirm once the
+        // transfer is seen in the Opay account, since there's no way to verify it
+        // automatically without Opay API access.
+        async function confirmOpayTransfer() {
+            if (!currentServiceKey || !currentUser) return;
+            const errEl = document.getElementById('svc-opay-error');
+            const succEl = document.getElementById('svc-opay-success');
+            errEl.classList.add('hidden');
+            succEl.classList.add('hidden');
+
+            const btn = document.getElementById('svc-opay-confirm-btn');
+            btn.disabled = true;
+            btn.innerText = 'Submitting...';
+
+            const note = document.getElementById('svc-opay-note').value.trim();
+            const reference = `opay_${currentServiceKey}_${currentUser.id}_${Date.now()}`;
+
+            try {
+                const client = getSupabase();
+                const { data: { session } } = await client.auth.getSession();
+                const res = await fetch('/api/pay-for-service', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                    body: JSON.stringify({ service_key: currentServiceKey, method: 'opay', reference, customer_note: note })
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.status) throw new Error(result.message || 'Could not submit this. Please try again.');
+
+                succEl.innerText = result.message || "Thanks! We're confirming your transfer and will activate your service shortly.";
+                succEl.classList.remove('hidden');
+                setTimeout(closeServicePaymentModal, 2500);
+            } catch (err) {
+                errEl.innerText = err.message || 'Something went wrong. Please try again.';
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "I've Sent the Money";
+            }
+        }
+
         async function initProfile() {
             const client = getSupabase();
             if (!client) {
@@ -968,7 +1252,6 @@
             let lastName = metadata.last_name || '';
             let phone = metadata.phone || currentUser.phone || '';
 
-            // Fallback check to database table if metadata is incomplete
             if (!firstName || !lastName || !phone) {
                 try {
                     const { data: profile } = await client
@@ -988,14 +1271,13 @@
                 }
             }
 
-            // Keep the in-memory user object in sync with whatever we resolved
             currentUser.user_metadata = { ...metadata, first_name: firstName, last_name: lastName, phone: phone };
             populateProfileFields(currentUser);
             setupReferralLink(currentUser);
             loadWallet(client, currentUser);
             subscribeToWalletChanges(client, currentUser);
+            loadServicesCatalog(client);
 
-            // Fetch and display transaction records
             const tbody = document.getElementById('user-tx-body');
             try {
                 const res = await fetch('/api/get-my-transactions', {
@@ -1022,7 +1304,6 @@
                     }
                 }
 
-                // If no transactions exist for the user
                 tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500">No transactions yet</td></tr>`;
 
             } catch (err) {
@@ -1067,7 +1348,6 @@
 
                 if (error) throw error;
 
-                // Best-effort sync to a "profiles" table if the project uses one.
                 try {
                     await client.from('profiles').upsert({
                         id: currentUser.id,
@@ -1095,7 +1375,6 @@
             }
         }
 
-        // Same as cancelEditMode but doesn't clear the success message we just set
         function cancelEditModeKeepingSuccess() {
             ['edit-firstname', 'edit-lastname', 'edit-phone'].forEach(id => {
                 document.getElementById(id).disabled = true;
