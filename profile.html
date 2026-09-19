@@ -1011,18 +1011,33 @@
         // The server independently re-checks this same table on every purchase - it never
         // trusts a price sent from the browser.
         let SERVICES_CATALOG = {}; // service_key -> { name, price }
+        let servicesLoadPromise = null;
         let currentServiceKey = null;
 
-        async function loadServicesCatalog(client) {
-            try {
-                const { data, error } = await client.from('services').select('key, name, price').eq('active', true);
-                if (error) throw error;
-                (data || []).forEach(s => {
-                    SERVICES_CATALOG[s.key] = { name: s.name, price: Number(s.price) };
-                });
-            } catch (err) {
-                console.log('Services catalog notice: could not load service prices.', err);
-            }
+        function loadServicesCatalog(client) {
+            servicesLoadPromise = (async () => {
+                try {
+                    const { data, error } = await client.from('services').select('key, name, price').eq('active', true);
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        console.warn(
+                            'Services catalog notice: "services" table returned zero rows. ' +
+                            'Most likely cause: service-payments-schema.sql has not been run in Supabase yet.'
+                        );
+                    }
+                    (data || []).forEach(s => {
+                        SERVICES_CATALOG[s.key] = { name: s.name, price: Number(s.price) };
+                    });
+                } catch (err) {
+                    console.error(
+                        'Services catalog notice: could not load service prices. Common cause: the ' +
+                        '"services" table does not exist yet - run service-payments-schema.sql in Supabase.',
+                        err
+                    );
+                }
+            })();
+            return servicesLoadPromise;
         }
 
         function formatNaira(n) {
@@ -1054,10 +1069,20 @@
             }).catch(() => {});
         }
 
-        function openServicePaymentModal(serviceKey) {
+        async function openServicePaymentModal(serviceKey) {
+            // If a service card is clicked before the price fetch finishes (e.g. right
+            // after the page loads), wait for that one in-flight request instead of
+            // immediately treating the service as unavailable.
+            if (!SERVICES_CATALOG[serviceKey] && servicesLoadPromise) {
+                await servicesLoadPromise;
+            }
+
             const svc = SERVICES_CATALOG[serviceKey];
             if (!svc) {
-                alert('This service is not available for online payment yet. Please contact support.');
+                alert(
+                    'This service is temporarily unavailable for online payment. ' +
+                    'If this keeps happening, please contact support and mention: "service catalog failed to load".'
+                );
                 return;
             }
             currentServiceKey = serviceKey;
