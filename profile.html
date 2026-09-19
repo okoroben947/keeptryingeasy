@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="dark light">
     <title>EasyConnect - Client Profile & Transactions</title>
+    <link rel="icon" href="favicon (2).png" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.paystack.co/v1/inline.js"></script>
@@ -72,11 +73,22 @@
             color: #ffffff;
             border-bottom-color: #6366f1;
         }
+        html.light-theme .tab-btn[aria-selected="true"] {
+            color: #0f172a !important;
+        }
+        html.light-theme .tab-btn:hover {
+            color: #0f172a !important;
+        }
         .tab-panel[hidden] { display: none; }
+
+        /* Themed divider used inside the tabs card so it matches the other
+           sections' border color in both dark and light mode. */
+        .db-divider { border-color: #1e293b; }
+        html.light-theme .db-divider { border-color: #e2e8f0 !important; }
 
         .whatsapp-float {
             position: fixed;
-            bottom: max(20px, env(safe-area-inset-bottom) + 20px);
+            bottom: max(88px, env(safe-area-inset-bottom) + 88px);
             right: max(20px, env(safe-area-inset-right) + 20px);
             background: #25D366;
             color: #fff;
@@ -93,6 +105,38 @@
         }
         .whatsapp-float:hover { transform: scale(1.08); }
         .whatsapp-float svg { width: 28px; height: 28px; }
+
+        .scroll-top-float {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom) + 20px);
+            right: max(25.5px, env(safe-area-inset-right) + 25.5px);
+            background: #1e293b;
+            color: #fff;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+            z-index: 998;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s ease, background-color 0.15s ease;
+        }
+        .scroll-top-float.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .scroll-top-float:hover {
+            transform: scale(1.08);
+            background: #334155;
+        }
+        .scroll-top-float svg { width: 20px; height: 20px; }
+        html.light-theme .scroll-top-float { background: #ffffff; color: #0f172a; }
+        html.light-theme .scroll-top-float:hover { background: #f1f5f9; }
 
         .db-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 1rem; }
         .db-sidebar { background: #0f172a; border-right: 1px solid #1e293b; }
@@ -112,6 +156,14 @@
             #sidebar { position: fixed; top: 0; left: 0; height: 100dvh; width: 17rem; transform: translateX(-100%); z-index: 50; }
             #sidebar.open { transform: translateX(0); }
         }
+        @media (min-width: 768px) {
+            #sidebar {
+                position: sticky;
+                top: 0;
+                height: 100dvh;
+                overflow-y: auto;
+            }
+        }
 
         .nav-link { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.75rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 600; text-decoration: none; transition: background-color .15s ease; }
         .nav-link:hover { background: #1e293b; }
@@ -119,6 +171,41 @@
 
         .service-card { text-decoration: none; }
         .service-card:hover { border-color: #6366f1 !important; box-shadow: 0 4px 14px rgba(99,102,241,0.15); }
+
+        /* --- Uniform section header pattern used across every card on this page --- */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .section-title {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        @media (min-width: 640px) {
+            .section-title { font-size: 0.8125rem; }
+        }
+
+        /* --- Fix: on some mobile browsers (notably iOS Safari), the global
+           "button { color-scheme: dark; }" rule above causes WebKit to silently
+           substitute system dark-mode colors on solid light buttons, which made
+           this button render as a blank white pill with invisible text. Force a
+           light color-scheme + explicit colors on this specific button so the
+           label always renders correctly on phones. --- */
+        #fund-wallet-header-btn {
+            color-scheme: light;
+            background-color: #ffffff !important;
+            color: #4338ca !important;
+            -webkit-text-fill-color: #4338ca;
+            border: none;
+        }
+        #fund-wallet-header-btn:hover {
+            background-color: #f8fafc !important;
+        }
     </style>
 
     <script>
@@ -213,7 +300,7 @@
         </div>
 
         <!-- Wallet Balance -->
-        <div id="wallet-section" class="rounded-2xl shadow-xl p-5 sm:p-6 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #4f46e5, #7c3aed 55%, #db2777);">
+        <div id="wallet-section" class="sticky top-0 z-30 rounded-2xl shadow-xl p-5 sm:p-6 text-white overflow-hidden" style="background: linear-gradient(135deg, #4f46e5, #7c3aed 55%, #db2777);">
             <div class="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-wider text-white/70">Wallet Balance</p>
@@ -228,7 +315,7 @@
                     </div>
                     <p class="text-[11px] text-white/70 mt-2">Virtual Account: <span id="wallet-account-number" class="font-semibold text-white">Not yet assigned</span> <span id="wallet-account-provider"></span></p>
                 </div>
-                <button type="button" onclick="openFundWalletModal()" class="cursor-pointer shrink-0 bg-white text-indigo-700 text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-white/90 transition whitespace-nowrap">
+                <button type="button" onclick="openFundWalletModal()" id="fund-wallet-header-btn" class="cursor-pointer shrink-0 text-xs font-bold px-4 py-2.5 rounded-xl transition whitespace-nowrap">
                     + Fund Wallet
                 </button>
             </div>
@@ -238,8 +325,148 @@
             </div>
         </div>
 
+        <!-- Identity / Profile Overview Card (moved above services so account details are seen first) -->
+        <div class="db-card shadow-xl p-5 sm:p-6">
+            <div class="section-header">
+                <h2 class="db-text section-title">Profile Overview</h2>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="relative shrink-0">
+                        <div id="avatar-circle" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl font-bold overflow-hidden">
+                            <img id="avatar-image" src="" alt="Profile picture" class="h-full w-full object-cover hidden">
+                            <span id="avatar-initials">&nbsp;</span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('avatar-file-input').click()" aria-label="Change profile picture" title="Change profile picture" class="cursor-pointer absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-slate-800 border-2 border-slate-900 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5 sm:h-4 sm:w-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17a1 1 0 001 1h3.5L18 8.5a1.5 1.5 0 000-2.121l-.379-.38a1.5 1.5 0 00-2.121 0L5 15.5z"/>
+                            </svg>
+                        </button>
+                        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="handleAvatarChange(event)">
+                    </div>
+                    <div class="min-w-0">
+                        <h1 id="header-user-name" class="text-base sm:text-lg font-bold text-white tracking-tight truncate">Loading profile...</h1>
+                        <p id="header-user-email" class="text-xs text-slate-400 truncate">&nbsp;</p>
+                        <p id="avatar-status" class="text-[10px] mt-1 hidden"></p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center shrink-0 text-center">
+                    <img src="logo.png" alt="EasyConnect Logo" class="h-24 w-24 sm:h-20 sm:w-20 object-contain rounded-xl bg-slate-800/80 p-2 border border-slate-700" onerror="this.src='https://placehold.co/80x80/1e293b/white?text=EC'">
+                    <span class="text-[9px] sm:text-[10px] font-bold text-white mt-1 tracking-wide whitespace-nowrap">Easyconnect Group</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs: Profile Info / Security / Payment History (moved above services) -->
+        <div class="db-card rounded-2xl shadow-xl overflow-hidden">
+            <div role="tablist" class="flex border-b db-divider px-2">
+                <button role="tab" id="tab-btn-info" aria-selected="true" aria-controls="tab-panel-info" onclick="switchTab('info')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold db-muted border-b-2 border-transparent hover:text-white transition">
+                    Profile Info
+                </button>
+                <button role="tab" id="tab-btn-security" aria-selected="false" aria-controls="tab-panel-security" onclick="switchTab('security')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold db-muted border-b-2 border-transparent hover:text-white transition">
+                    Security
+                </button>
+                <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-panel-history" onclick="switchTab('history')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold db-muted border-b-2 border-transparent hover:text-white transition">
+                    Payment History
+                </button>
+            </div>
+
+            <!-- Profile Info Panel -->
+            <div id="tab-panel-info" role="tabpanel" aria-labelledby="tab-btn-info" class="tab-panel p-5 sm:p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-xs sm:text-sm db-text uppercase tracking-wider">Personal details</h2>
+                    <button type="button" id="edit-toggle-btn" onclick="enterEditMode()" class="cursor-pointer text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
+                        Edit
+                    </button>
+                </div>
+
+                <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-3.5 sm:space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">First Name</label>
+                            <input type="text" id="edit-firstname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Last Name</label>
+                            <input type="text" id="edit-lastname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Phone Number</label>
+                        <input type="tel" id="edit-phone" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Email Address</label>
+                        <input type="email" id="edit-email" disabled class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500">
+                        <p class="text-[10px] db-muted mt-1">Contact support to change the email on your account.</p>
+                    </div>
+
+                    <p id="profile-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
+                    <p id="profile-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Profile updated.</p>
+
+                    <div id="profile-form-actions" class="hidden flex-col sm:flex-row gap-3 pt-1">
+                        <button type="submit" id="profile-save-btn" class="cursor-pointer flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                            Save Changes
+                        </button>
+                        <button type="button" onclick="cancelEditMode()" class="cursor-pointer flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Security Panel -->
+            <div id="tab-panel-security" role="tabpanel" aria-labelledby="tab-btn-security" class="tab-panel p-5 sm:p-6 space-y-4" hidden>
+                <h2 class="font-bold text-xs sm:text-sm db-text uppercase tracking-wider">Change password</h2>
+                <form id="password-form" onsubmit="changePassword(event)" class="space-y-3.5 sm:space-y-4 max-w-sm">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">New Password</label>
+                        <input type="password" id="new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider db-muted mb-1">Confirm New Password</label>
+                        <input type="password" id="confirm-new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
+                    </div>
+
+                    <p id="password-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
+                    <p id="password-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Password updated.</p>
+
+                    <button type="submit" id="password-save-btn" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
+                        Update Password
+                    </button>
+                </form>
+            </div>
+
+            <!-- Payment History Panel -->
+            <div id="tab-panel-history" role="tabpanel" aria-labelledby="tab-btn-history" class="tab-panel p-5 sm:p-6 space-y-3" hidden>
+                <h2 class="font-bold text-xs sm:text-sm db-text uppercase tracking-wider">Your payment history</h2>
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-900/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold whitespace-nowrap">
+                                    <th class="p-3 sm:p-3.5">Reference</th>
+                                    <th class="p-3 sm:p-3.5">Amount</th>
+                                    <th class="p-3 sm:p-3.5">Status</th>
+                                    <th class="p-3 sm:p-3.5">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-tx-body" class="divide-y divide-slate-800/60">
+                                <tr><td colspan="4" class="p-6 text-center text-slate-500">Loading your transactions...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Referrals & Earnings -->
         <div id="referral-section" class="space-y-3">
+            <div class="section-header">
+                <h2 class="db-text section-title">Referrals & Earnings</h2>
+            </div>
             <div class="rounded-2xl shadow-xl p-5 sm:p-6 text-white relative overflow-hidden" style="background: linear-gradient(135deg, #db2777, #7c3aed);">
                 <span class="inline-block text-[9px] font-bold uppercase tracking-wider bg-white/20 px-2 py-1 rounded-full">Cash Bonuses</span>
                 <h3 class="text-base sm:text-lg font-extrabold mt-2">Invite Friends & Get Commission!</h3>
@@ -264,8 +491,8 @@
 
         <!-- Quick Links & Services -->
         <div id="services-section">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="db-text font-bold text-xs sm:text-sm uppercase tracking-wider">Quick Links & Services</h2>
+            <div class="section-header">
+                <h2 class="db-text section-title">Quick Links & Services</h2>
                 <a href="pricing.html" class="text-indigo-400 hover:text-indigo-300 text-xs font-semibold">View All &rsaquo;</a>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -398,145 +625,16 @@
 
         <!-- Notifications -->
         <div id="notifications-section" class="db-card shadow-xl p-5 sm:p-6">
-            <h2 class="db-text font-bold text-xs sm:text-sm uppercase tracking-wider mb-3">Notifications</h2>
+            <div class="section-header">
+                <h2 class="db-text section-title">Notifications</h2>
+            </div>
             <div class="flex items-center gap-3">
                 <span class="db-chip h-9 w-9 flex items-center justify-center shrink-0 text-base">🔔</span>
                 <p class="db-muted text-xs">You're all caught up — no new notifications.</p>
             </div>
         </div>
+    </div>
 
-        <!-- Identity Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-5 sm:p-8">
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4 min-w-0">
-                    <div class="relative shrink-0">
-                        <div id="avatar-circle" class="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg sm:text-xl font-bold overflow-hidden">
-                            <img id="avatar-image" src="" alt="Profile picture" class="h-full w-full object-cover hidden">
-                            <span id="avatar-initials">&nbsp;</span>
-                        </div>
-                        <button type="button" onclick="document.getElementById('avatar-file-input').click()" aria-label="Change profile picture" title="Change profile picture" class="cursor-pointer absolute -bottom-1 -right-1 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-slate-800 border-2 border-slate-900 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5 sm:h-4 sm:w-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 13.5V17a1 1 0 001 1h3.5L18 8.5a1.5 1.5 0 000-2.121l-.379-.38a1.5 1.5 0 00-2.121 0L5 15.5z"/>
-                            </svg>
-                        </button>
-                        <input type="file" id="avatar-file-input" accept="image/png, image/jpeg, image/webp" class="hidden" onchange="handleAvatarChange(event)">
-                    </div>
-                    <div class="min-w-0">
-                        <h1 id="header-user-name" class="text-base sm:text-lg font-bold text-white tracking-tight truncate">Loading profile...</h1>
-                        <p id="header-user-email" class="text-xs text-slate-400 truncate">&nbsp;</p>
-                        <p id="avatar-status" class="text-[10px] mt-1 hidden"></p>
-                    </div>
-                </div>
-                <div class="flex flex-col items-center shrink-0 text-center">
-                    <img src="logo.png" alt="EasyConnect Logo" class="h-24 w-24 sm:h-20 sm:w-20 object-contain rounded-xl bg-slate-800/80 p-2 border border-slate-700" onerror="this.src='https://placehold.co/80x80/1e293b/white?text=EC'">
-                    <span class="text-[9px] sm:text-[10px] font-bold text-white mt-1 tracking-wide whitespace-nowrap">Easyconnect Group</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
-            <div role="tablist" class="flex border-b border-slate-800 px-2">
-                <button role="tab" id="tab-btn-info" aria-selected="true" aria-controls="tab-panel-info" onclick="switchTab('info')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
-                    Profile Info
-                </button>
-                <button role="tab" id="tab-btn-security" aria-selected="false" aria-controls="tab-panel-security" onclick="switchTab('security')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
-                    Security
-                </button>
-                <button role="tab" id="tab-btn-history" aria-selected="false" aria-controls="tab-panel-history" onclick="switchTab('history')" class="tab-btn cursor-pointer px-4 py-3.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent hover:text-white transition">
-                    Payment History
-                </button>
-            </div>
-
-            <!-- Profile Info Panel -->
-            <div id="tab-panel-info" role="tabpanel" aria-labelledby="tab-btn-info" class="tab-panel p-5 sm:p-8 space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Personal details</h2>
-                    <button type="button" id="edit-toggle-btn" onclick="enterEditMode()" class="cursor-pointer text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
-                        Edit
-                    </button>
-                </div>
-
-                <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-3.5 sm:space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">First Name</label>
-                            <input type="text" id="edit-firstname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Last Name</label>
-                            <input type="text" id="edit-lastname" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Phone Number</label>
-                        <input type="tel" id="edit-phone" disabled required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
-                        <input type="email" id="edit-email" disabled class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500">
-                        <p class="text-[10px] text-slate-500 mt-1">Contact support to change the email on your account.</p>
-                    </div>
-
-                    <p id="profile-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
-                    <p id="profile-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Profile updated.</p>
-
-                    <div id="profile-form-actions" class="hidden flex-col sm:flex-row gap-3 pt-1">
-                        <button type="submit" id="profile-save-btn" class="cursor-pointer flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
-                            Save Changes
-                        </button>
-                        <button type="button" onclick="cancelEditMode()" class="cursor-pointer flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Security Panel -->
-            <div id="tab-panel-security" role="tabpanel" aria-labelledby="tab-btn-security" class="tab-panel p-5 sm:p-8 space-y-4" hidden>
-                <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Change password</h2>
-                <form id="password-form" onsubmit="changePassword(event)" class="space-y-3.5 sm:space-y-4 max-w-sm">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">New Password</label>
-                        <input type="password" id="new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Confirm New Password</label>
-                        <input type="password" id="confirm-new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-                    </div>
-
-                    <p id="password-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
-                    <p id="password-success" class="text-xs text-emerald-400 hidden font-medium leading-relaxed">Password updated.</p>
-
-                    <button type="submit" id="password-save-btn" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
-                        Update Password
-                    </button>
-                </form>
-            </div>
-
-            <!-- Payment History Panel -->
-            <div id="tab-panel-history" role="tabpanel" aria-labelledby="tab-btn-history" class="tab-panel p-5 sm:p-8 space-y-3" hidden>
-                <h2 class="font-bold text-xs sm:text-sm text-white uppercase tracking-wider">Your payment history</h2>
-                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-900/50 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold whitespace-nowrap">
-                                    <th class="p-3 sm:p-3.5">Reference</th>
-                                    <th class="p-3 sm:p-3.5">Amount</th>
-                                    <th class="p-3 sm:p-3.5">Status</th>
-                                    <th class="p-3 sm:p-3.5">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-tx-body" class="divide-y divide-slate-800/60">
-                                <tr><td colspan="4" class="p-6 text-center text-slate-500">Loading your transactions...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -658,9 +756,6 @@
                 </button>
                 <p class="text-[10px] db-muted text-center">We'll confirm your transfer and activate your service, usually within a few hours.</p>
             </div>
-        </div>
-    </div>
-
         </div>
     </div>
 
@@ -1527,5 +1622,37 @@
             <path d="M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.36.101 11.943c0 2.105.549 4.161 1.595 5.976L0 24l6.335-1.652c1.745.951 3.71 1.454 5.71 1.455h.005c6.585 0 11.946-5.36 11.949-11.944 0-3.193-1.24-6.19-3.479-8.41zM12.05 21.785h-.005c-1.775 0-3.517-.478-5.037-1.377l-.362-.214-3.751.98 1.001-3.653-.235-.375a9.87 9.87 0 0 1-1.516-5.276c.003-5.462 4.449-9.908 9.913-9.908 2.646 0 5.135 1.034 7.008 2.91 1.872 1.876 2.903 4.367 2.902 7.014-.003 5.462-4.449 9.899-9.918 9.899z"/>
         </svg>
     </a>
+
+    <!-- FLOATING BACK-TO-TOP (sits directly under the WhatsApp button) -->
+    <button type="button" id="scroll-top-btn" onclick="scrollToTop()" class="scroll-top-float" aria-label="Back to top" title="Back to top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/>
+        </svg>
+    </button>
+
+    <script>
+        (function () {
+            const btn = document.getElementById('scroll-top-btn');
+            if (!btn) return;
+
+            function getScrollY() {
+                return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+            }
+
+            function updateVisibility() {
+                btn.classList.toggle('visible', getScrollY() > 300);
+            }
+
+            window.addEventListener('scroll', updateVisibility, { passive: true });
+            document.body.addEventListener('scroll', updateVisibility, { passive: true });
+            updateVisibility();
+        })();
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>
