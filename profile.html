@@ -297,6 +297,10 @@
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🗂️</span>
                     <span class="db-text text-xs font-semibold">Enrollment</span>
                 </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('affidavit')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
+                    <span class="db-text text-xs font-semibold">Affidavit</span>
+                </a>
                 <a href="javascript:void(0)" onclick="openServicePaymentModal('birth_attestation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-amber-500/15 text-base">☀️</span>
                     <span class="db-text text-xs font-semibold">Birth Attestation</span>
@@ -308,6 +312,14 @@
                 <a href="javascript:void(0)" onclick="openServicePaymentModal('cac_registration')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
                     <span class="db-text text-xs font-semibold">CAC Registration</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('cac_company_registration')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
+                    <span class="db-text text-xs font-semibold">CAC Company Registration</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('cac_ngo_registration')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
+                    <span class="db-text text-xs font-semibold">CAC NGO Registration</span>
                 </a>
                 <a href="javascript:void(0)" onclick="openServicePaymentModal('copyright')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-purple-500/15 text-base">©️</span>
@@ -332,6 +344,50 @@
                 <a href="javascript:void(0)" onclick="openServicePaymentModal('state_of_origin')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
                     <span class="db-text text-xs font-semibold">State of Origin</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('waec_pin')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">WAEC PIN</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('waec_certificate_retrieval')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-emerald-500/15 text-base">🏛️</span>
+                    <span class="db-text text-xs font-semibold">WAEC Certificate Retrieval</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('neco_pin')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NECO PIN</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_name_modification')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Name Modification</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_phone_modification')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Phone Modification</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_address_modification')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Address Modification</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_no_record_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN No Record Validation</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_photograph_error_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Photograph Error Validation</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_bank_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Bank Validation</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_modification_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN Modification Validation</span>
+                </a>
+                <a href="javascript:void(0)" onclick="openServicePaymentModal('nin_sim_validation')" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
+                    <span class="h-9 w-9 rounded-full flex items-center justify-center bg-sky-500/15 text-base">🗺️</span>
+                    <span class="db-text text-xs font-semibold">NIN SIM Validation</span>
                 </a>
                 <a href="pricing.html" class="service-card db-card p-4 flex flex-col items-center gap-2 text-center transition">
                     <span class="h-9 w-9 rounded-full flex items-center justify-center bg-indigo-500/15 text-base">📚</span>
