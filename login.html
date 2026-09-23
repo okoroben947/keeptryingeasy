@@ -1,68 +1,77 @@
 <!DOCTYPE html>
-<html lang="en" class="min-h-full bg-slate-950">
+<html lang="en" class="min-h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" content="light dark">
     <title>EasyConnect - Client Login</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <style>
-        /* Tell mobile browsers (Android/Samsung "auto dark", iOS smart invert, etc.) that this
-           page already handles its own dark theme. Without this, some mobile browsers forcibly
-           re-theme form fields -- injecting a light/white background behind the input while the
-           page's own light text color stays as-is, which makes whatever you type invisible
-           (white text on a white box the browser added on top of our dark background). */
         html {
-            color-scheme: dark;
+            color-scheme: light;
         }
 
-        /* Reset native OS form-control chrome so our own background/text colors always win,
-           instead of the mobile browser rendering its own default (usually white) control. */
         input, select, textarea, button {
-            color-scheme: dark;
+            color-scheme: light;
             -webkit-appearance: none;
             appearance: none;
         }
 
         input, select, textarea {
-            background-color: #020617 !important;
-            color: #ffffff !important;
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
         }
 
         input::placeholder, textarea::placeholder {
-            color: #64748b !important;
+            color: #94a3b8 !important;
             opacity: 1;
         }
 
-        /* Fix mobile Chrome / iOS Safari autofill white text and background bugs */
         input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
         input:-webkit-autofill:active {
-            -webkit-text-fill-color: #ffffff !important;
-            -webkit-box-shadow: 0 0 0px 1000px #020617 inset !important;
-            box-shadow: 0 0 0px 1000px #020617 inset !important;
-            caret-color: #ffffff;
+            -webkit-text-fill-color: #0f172a !important;
+            -webkit-box-shadow: 0 0 0px 1000px #f8fafc inset !important;
+            box-shadow: 0 0 0px 1000px #f8fafc inset !important;
+            caret-color: #0f172a;
             transition: background-color 5000s ease-in-out 0s;
         }
 
-        /* iOS Safari auto-zooms the whole page on focus if an input's font-size is under 16px.
-           That zoom is what makes the layout look "overlapping"/broken on mobile once the
-           keyboard opens. Forcing 16px on small screens stops the zoom without changing the
-           visual size we show on larger screens (sm: classes still control that). */
         @media (max-width: 640px) {
             input, select, textarea {
                 font-size: 16px !important;
             }
         }
 
-        /* Smooth touch scrolling for mobile */
         body {
             -webkit-overflow-scrolling: touch;
             padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .bubble-field {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .bubble {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(60px);
+            animation: floatBubble 20s ease-in-out infinite;
+            will-change: transform;
+        }
+        @keyframes floatBubble {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33%      { transform: translate(28px, -36px) scale(1.08); }
+            66%      { transform: translate(-24px, 22px) scale(0.94); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .bubble { animation: none; }
         }
     </style>
 
@@ -70,7 +79,6 @@
       const SUPABASE_URL = 'https://fhophxqeoeowhgqlihzq.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_moji8A_nvf8TRP1NsGKlyg_jlup6r6d';
 
-      // Safe lazy initializer to ensure CDN is loaded before creating client
       function getSupabase() {
           if (window.supabaseClient && window.supabaseClient.auth) {
               return window.supabaseClient;
@@ -84,42 +92,119 @@
       }
     </script>
 </head>
-<body class="min-h-dvh bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 py-8 sm:py-12 overflow-y-auto">
+<body class="min-h-dvh bg-slate-50 text-slate-900 overflow-y-auto">
 
-    <!-- Container Card with responsive padding & sizing -->
-    <div class="max-w-md w-full bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-2xl shadow-xl space-y-5 sm:space-y-6 my-auto">
-        
-        <!-- Header with Logo -->
-        <div class="text-center space-y-2 sm:space-y-3">
-            <img src="logo.png" alt="EasyConnect Logo" class="h-20 w-20 sm:h-28 sm:w-28 mx-auto object-contain rounded-xl bg-slate-800/80 p-2 border border-slate-700 shadow-lg" onerror="this.src='https://placehold.co/112x112/indigo/white?text=EasyConnect'">
-            <div>
-                <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">Client Sign In</h1>
-                <p class="text-xs text-slate-400 mt-0.5">Access your EasyConnect profile</p>
+    <div class="min-h-dvh grid grid-cols-1 lg:grid-cols-2">
+
+        <div class="flex relative flex-col justify-between p-6 sm:p-8 lg:p-10 xl:p-14 overflow-x-hidden overflow-y-auto" style="background: linear-gradient(160deg, #1e1b4b, #4f46e5 55%, #86198f 130%);">
+            <div class="bubble-field" aria-hidden="true">
+                <div class="bubble" style="width:320px;height:320px;top:-60px;left:-60px;background:#818cf8;opacity:0.45;"></div>
+                <div class="bubble" style="width:260px;height:260px;bottom:10%;left:15%;background:#f472b6;opacity:0.35;animation-delay:-6s;"></div>
+                <div class="bubble" style="width:380px;height:380px;bottom:-120px;right:-100px;background:#a855f7;opacity:0.4;animation-delay:-12s;"></div>
+                <div class="bubble" style="width:200px;height:200px;top:20%;right:10%;background:#22d3ee;opacity:0.25;animation-delay:-3s;"></div>
+            </div>
+
+            <div class="relative z-10 flex items-center gap-3">
+                <img src="logo.png" alt="EasyConnect Logo" class="h-24 w-24 lg:h-16 lg:w-16 xl:h-20 xl:w-20 object-contain rounded-xl bg-white/10 p-1.5 border border-white/20" onerror="this.src='https://placehold.co/44x44/ffffff/4f46e5?text=EC'">
+                <span class="text-white font-bold text-lg tracking-tight">Easyconnect Group</span>
+            </div>
+            <br>
+            <div class="relative z-10 max-w-md space-y-6">
+                <span class="inline-block text-[11px] font-bold uppercase tracking-wider bg-white/15 text-indigo-100 px-3 py-1.5 rounded-full">
+                    Trusted Compliance &amp; Identity Verification Platform
+                </span>
+                <h1 class="text-2xl sm:text-3xl xl:text-4xl font-extrabold text-white leading-tight">
+                    Seamless Compliance, Verification & AI Automation Solutions
+                </h1>
+                <p class="text-indigo-100/90 text-sm leading-relaxed">
+                    EASYCONNECT GROUP, your reliable partner for providing robust communication services like automated data vending, instant airtime top-up, fast clearance, and secure identity verifications — alongside NIN, CAC, bills payment, affidavit, exam pins, attestation, and AI automation/integration.
+                </p>
+                <ul class="space-y-3.5 pt-2">
+                    <li class="flex items-center gap-3 text-sm text-white/90">
+                        <span class="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center shrink-0" aria-hidden="true">🔒</span>
+                        Bank-grade wallet security
+                    </li>
+                    <li class="flex items-center gap-3 text-sm text-white/90">
+                        <span class="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center shrink-0" aria-hidden="true">⚡</span>
+                        Instant VTU topup, compliance &amp; verification
+                    </li>
+                    <li class="flex items-center gap-3 text-sm text-white/90">
+                        <span class="h-8 w-8 rounded-full bg-white/15 flex items-center justify-center shrink-0" aria-hidden="true">💬</span>
+                        Friendly support, whenever you need it
+                    </li>
+                </ul>
+            </div>
+            <br>
+            <p class="relative z-10 text-[11px] text-indigo-100/60">&copy; 2026 Easyconnect Group. All Rights Reserved.</p>
+        </div>
+
+        <div class="flex items-center justify-center p-4 sm:p-6 py-10 sm:py-12">
+            <div class="max-w-md w-full space-y-6 sm:space-y-7">
+
+                <div class="text-center space-y-1.5">
+                    <h1 id="welcome-heading" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Client Sign In</h1>
+                    <p class="text-sm text-slate-500">Access your EasyConnect profile</p>
+                </div>
+
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="name@example.com" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Password</label>
+                        <div class="relative">
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-11 py-3 sm:py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors">
+                            <button type="button" id="login-password-toggle" onclick="togglePasswordVisibility('login-password', 'login-password-toggle')" aria-label="Show password" class="cursor-pointer absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p id="login-error" class="text-xs text-rose-600 hidden font-medium leading-relaxed"></p>
+
+                    <button type="submit" id="login-btn" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-lg shadow-indigo-600/25 active:scale-[0.98]">
+                        Sign In
+                    </button>
+                </form>
+
+                <p class="text-sm text-center text-slate-500">
+                    Don't have an account? <a href="register.html" class="text-indigo-600 font-semibold hover:underline">Register</a>
+                </p>
             </div>
         </div>
 
-        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3.5 sm:space-y-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Email Address</label>
-                <input type="email" id="login-email" required placeholder="name@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Password</label>
-                <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 sm:py-2.5 text-sm sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors">
-            </div>
-            <p id="login-error" class="text-xs text-rose-400 hidden font-medium leading-relaxed"></p>
-            
-            <button type="submit" id="login-btn" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 sm:py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
-                Sign In
-            </button>
-        </form>
-
-        <p class="text-xs text-center text-slate-400">
-            Don't have an account? <a href="register.html" class="text-indigo-400 font-semibold hover:underline">Register</a>
-        </p>
     </div>
 
     <script>
+        function togglePasswordVisibility(inputId, btnId) {
+            const input = document.getElementById(inputId);
+            const btn = document.getElementById(btnId);
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+            btn.innerHTML = isHidden
+                ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.6 21.6 0 0 1 5.06-6.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+        }
+
+        // Reads the returning customer's first name (from their last Supabase session)
+        // and replaces "Client Sign In" with "Welcome back, FIRSTNAME".
+        async function greetReturningCustomer() {
+            try {
+                const client = getSupabase();
+                if (!client || !client.auth) return;
+
+                const { data } = await client.auth.getSession();
+                const firstName = data?.session?.user?.user_metadata?.first_name;
+                if (firstName) {
+                    document.getElementById('welcome-heading').innerText = `Welcome back, ${firstName.toUpperCase()}`;
+                }
+            } catch (err) {
+                // Silently keep the default "Client Sign In" heading if this fails.
+            }
+        }
+        document.addEventListener('DOMContentLoaded', greetReturningCustomer);
+
         async function handleLogin(e) {
             e.preventDefault();
             
@@ -134,7 +219,6 @@
                 btn.disabled = true;
                 btn.innerText = "Signing In...";
 
-                // Retrieve verified Supabase client instance
                 const client = getSupabase();
                 if (!client || !client.auth) {
                     throw new Error("Supabase failed to load. Please refresh the page and try again.");
@@ -146,8 +230,6 @@
                     throw error;
                 }
 
-                // Mark this browser as having a registered/logged-in account so the
-                // registration gate on home.html lets the user straight through.
                 try {
                     localStorage.setItem('easyconnect_account_created', 'true');
                 } catch (storageErr) {
