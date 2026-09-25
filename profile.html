@@ -1035,6 +1035,7 @@
         // the reference to the same backend verification call submitFundWallet() uses
         // above (POST /api/verify-wallet-funding), just like the Paystack path never
         // trusts the browser's onSuccess callback alone.
+        // 1. DYNAMIC INJECTION: Forces the script to load if it is missing
         function submitFundWalletKorapay() {
             const errEl = document.getElementById('fund-wallet-error');
             errEl.classList.add('hidden');
@@ -1054,20 +1055,37 @@
                 return;
             }
 
-            if (typeof window.Korapay === 'undefined') {
-                errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
-                errEl.classList.remove('hidden');
-                return;
-            }
-
             const payBtn = document.getElementById('fund-wallet-korapay-btn');
             payBtn.disabled = true;
+            payBtn.innerText = 'Connecting to Korapay...';
+
+            if (typeof window.Korapay === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-inline.min.js';
+                
+                script.onload = () => {
+                    launchKorapayCheckout(amount, payBtn, errEl);
+                };
+                script.onerror = () => {
+                    errEl.innerText = 'Could not load payment gateway. Please check your internet connection.';
+                    errEl.classList.remove('hidden');
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Pay with Korapay';
+                };
+                document.body.appendChild(script);
+            } else {
+                // If it's already loaded, just launch it
+                launchKorapayCheckout(amount, payBtn, errEl);
+            }
+        }
+
+        // 2. THE CHECKOUT POPUP LOGIC
+        function launchKorapayCheckout(amount, payBtn, errEl) {
+            const reference = `wallet_kp_${currentUser.id}_${Date.now()}`;
             payBtn.innerText = 'Opening Korapay...';
 
-            const reference = `wallet_kp_${currentUser.id}_${Date.now()}`;
-
             window.Korapay.initialize({
-                key: KORAPAY_PUBLIC_KEY,
+                key: KORAPAY_PUBLIC_KEY, 
                 reference: reference,
                 amount: amount,
                 currency: 'NGN',
@@ -1079,7 +1097,7 @@
                 },
                 onSuccess: function () {
                     payBtn.disabled = false;
-                    payBtn.innerText = 'Pay with Korapay';
+                    payBtn.innerText = 'Verifying payment...';
                     verifyPaymentOnBackend(reference, 'korapay');
                 },
                 onFailed: function () {
