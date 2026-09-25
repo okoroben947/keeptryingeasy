@@ -1,6 +1,6 @@
 // /api/pay-for-service.js
 //
-// Handles a customer paying for a service in three ways:
+// Handles a customer paying for a service in four ways:
 //   - "wallet"   : atomically debited from public.wallets via a Postgres
 //                  function (see service-payments-schema.sql), recorded as
 //                  an immediate "success".
@@ -8,6 +8,11 @@
 //                  this endpoint re-verifies the transaction directly with
 //                  Paystack's API before recording it - never trusts the
 //                  browser's word that a payment succeeded.
+//   - "korapay"  : same principle as "paystack" above - the browser has
+//                  already run Korapay's inline checkout; this endpoint
+//                  re-verifies the charge directly with Korapay's API using
+//                  KORAPAY_SECRET_KEY before recording it. Never trusts the
+//                  browser's onSuccess callback alone.
 //   - "opay"     : NOT an API integration. This business currently confirms
 //                  Opay transfers manually, so this just records a
 //                  "pending" purchase (with whatever note the customer gave
@@ -61,6 +66,9 @@ export default async function handler(req, res) {
         }
         if (method === 'paystack') {
             return await payWithPaystack(res, user, service_key, reference);
+        }
+        if (method === 'korapay') {
+            return await payWithKorapay(res, user, service_key, reference);
         }
         if (method === 'opay') {
             return await recordOpayPending(res, user, service_key, reference, customer_note);
@@ -149,6 +157,63 @@ async function payWithPaystack(res, user, serviceKey, reference) {
     return res.status(200).json({
         status: true,
         message: `${serviceRow.name} paid successfully via Paystack.`,
+        service_name: serviceRow.name,
+        amount: Number(serviceRow.price)
+    });
+}
+
+async function payWithKorapay(res, user, serviceKey, reference) {
+    if (!reference) {
+        return res.status(400).json({ status: false, message: 'A payment reference is required to verify this transaction.' });
+    }
+
+    // Re-verify directly with Korapay - same principle as the Paystack branch above:
+    // the browser's onSuccess callback firing is not sufficient proof on its own;
+    // someone could call this endpoint with a made-up reference without ever having paid.
+    const verifyRes = await fetch(`https://api.korapay.com/merchant/api/v1/charges/${encodeURIComponent(reference)}`, {
+        headers: { Authorization: `Bearer ${process.env.KORAPAY_SECRET_KEY}` }
+    });
+    const verifyJson = await verifyRes.json();
+
+    if (!verifyJson.status || !verifyJson.data || verifyJson.data.status !== 'success') {
+        return res.status(400).json({ status: false, message: 'Could not verify this payment with Korapay.' });
+    }
+
+    const { data: serviceRow, error: serviceErr } = await supabaseAdmin
+        .from('services')
+        .select('name, price')
+        .eq('key', serviceKey)
+        .eq('active', true)
+        .single();
+
+    if (serviceErr || !serviceRow) {
+        return res.status(400).json({ status: false, message: 'Unknown or inactive service.' });
+    }
+
+    const verifiedAmountNaira = Number(verifyJson.data.amount); // Korapay reports the charged amount in Naira, not kobo
+    if (verifiedAmountNaira < Number(serviceRow.price)) {
+        return res.status(400).json({ status: false, message: "The amount paid does not match this service's price." });
+    }
+
+    const { error: insertErr } = await supabaseAdmin.from('service_purchases').insert({
+        user_id: user.id,
+        service_key: serviceKey,
+        service_name: serviceRow.name,
+        amount: serviceRow.price,
+        payment_method: 'korapay',
+        status: 'success',
+        reference
+    });
+
+    if (insertErr) {
+        console.error('[/api/pay-for-service] Failed to log korapay purchase:', insertErr);
+        // The payment itself is genuinely verified at this point - don't tell the
+        // customer it failed just because the ledger write had a hiccup.
+    }
+
+    return res.status(200).json({
+        status: true,
+        message: `${serviceRow.name} paid successfully via Korapay.`,
         service_name: serviceRow.name,
         amount: Number(serviceRow.price)
     });

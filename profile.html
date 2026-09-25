@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script src="https://korablobstorage.blob.core.windows.net/modal-bucket/newModalScript.js"></script>
     
     <style>
         html {
@@ -226,6 +227,8 @@
       const SUPABASE_ANON_KEY = 'sb_publishable_moji8A_nvf8TRP1NsGKlyg_jlup6r6d';
 
       const PAYSTACK_PUBLIC_KEY = 'pk_live_089c5b9e145ecc8e93ee2329b0079bf1a13c220d';
+
+      const KORAPAY_PUBLIC_KEY = 'pk_live_mk21jXVx7r7F6gWMcPL8VRLgT1wTmjhJCDgmdASv';
 
       function getSupabase() {
           if (window.supabaseClient && window.supabaseClient.auth) {
@@ -720,6 +723,9 @@
             <button type="button" id="fund-wallet-pay-btn" onclick="submitFundWallet()" class="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-indigo-600/20 active:scale-[0.98]">
                 Continue to Pay
             </button>
+            <button type="button" id="fund-wallet-korapay-btn" onclick="submitFundWalletKorapay()" class="cursor-pointer w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-3 rounded-xl transition text-xs shadow-lg shadow-teal-600/20 active:scale-[0.98]">
+                Pay with Korapay
+            </button>
             <p class="text-[10px] db-muted text-center">Secured by Paystack</p>
         </div>
     </div>
@@ -766,6 +772,9 @@
 
                     <button type="button" id="svc-pay-paystack-btn" onclick="payForServiceDirect('paystack')" class="cursor-pointer w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
                         Pay with Paystack
+                    </button>
+                    <button type="button" id="svc-pay-korapay-btn" onclick="payForServiceDirect('korapay')" class="cursor-pointer w-full bg-teal-600 hover:bg-teal-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
+                        Pay with Korapay
                     </button>
                     <button type="button" onclick="showOpayView()" class="cursor-pointer w-full bg-sky-600 hover:bg-sky-500 text-white font-semibold py-3 rounded-xl transition text-xs active:scale-[0.98]">
                         Pay with Opay
@@ -1022,14 +1031,74 @@
             handler.openIframe();
         }
 
-        function verifyPaymentOnBackend(reference) {
+        // NEW: Korapay fund-wallet flow - opens Korapay's inline checkout, then hands
+        // the reference to the same backend verification call submitFundWallet() uses
+        // above (POST /api/verify-wallet-funding), just like the Paystack path never
+        // trusts the browser's onSuccess callback alone.
+        function submitFundWalletKorapay() {
+            const errEl = document.getElementById('fund-wallet-error');
+            errEl.classList.add('hidden');
+
+            const amountInput = document.getElementById('fund-wallet-amount');
+            const amount = Number(amountInput.value);
+
+            if (!amount || amount < 100) {
+                errEl.innerText = 'Enter an amount of at least ₦100.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!currentUser) {
+                errEl.innerText = 'Please wait for your profile to finish loading and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (typeof window.Korapay === 'undefined') {
+                errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const payBtn = document.getElementById('fund-wallet-korapay-btn');
+            payBtn.disabled = true;
+            payBtn.innerText = 'Opening Korapay...';
+
+            const reference = `wallet_kp_${currentUser.id}_${Date.now()}`;
+
+            window.Korapay.initialize({
+                key: KORAPAY_PUBLIC_KEY,
+                reference: reference,
+                amount: amount,
+                currency: 'NGN',
+                customer: { email: currentUser.email },
+                metadata: { user_id: currentUser.id },
+                onClose: function () {
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Pay with Korapay';
+                },
+                onSuccess: function () {
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Pay with Korapay';
+                    verifyPaymentOnBackend(reference, 'korapay');
+                },
+                onFailed: function () {
+                    errEl.innerText = 'Payment failed or was not completed. Please try again.';
+                    errEl.classList.remove('hidden');
+                    payBtn.disabled = false;
+                    payBtn.innerText = 'Pay with Korapay';
+                }
+            });
+        }
+
+        function verifyPaymentOnBackend(reference, provider) {
             const errEl = document.getElementById('fund-wallet-error');
             const payBtn = document.getElementById('fund-wallet-pay-btn');
 
             fetch('/api/verify-wallet-funding', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reference })
+                body: JSON.stringify({ reference, provider: provider || 'paystack' })
             })
                 .then((res) => res.json())
                 .then((result) => {
@@ -1374,6 +1443,10 @@
             const errEl = document.getElementById('svc-modal-error');
             errEl.classList.add('hidden');
 
+            if (method === 'korapay') {
+                return payForServiceWithKorapay(svc);
+            }
+
             if (typeof PaystackPop === 'undefined') {
                 errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
                 errEl.classList.remove('hidden');
@@ -1403,10 +1476,55 @@
             handler.openIframe();
         }
 
+        // NEW: Korapay direct service payment - verified server-side in
+        // /api/pay-for-service (method: 'korapay'), same principle as the Paystack
+        // branch above: the browser's onSuccess callback is never trusted alone.
+        function payForServiceWithKorapay(svc) {
+            const errEl = document.getElementById('svc-modal-error');
+            errEl.classList.add('hidden');
+
+            if (typeof window.Korapay === 'undefined') {
+                errEl.innerText = 'Payment could not start. Please refresh the page and try again.';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            const btn = document.getElementById('svc-pay-korapay-btn');
+            btn.disabled = true;
+            btn.innerText = 'Opening Korapay...';
+
+            const reference = `svc_kp_${currentServiceKey}_${currentUser.id}_${Date.now()}`;
+
+            window.Korapay.initialize({
+                key: KORAPAY_PUBLIC_KEY,
+                reference: reference,
+                amount: svc.price,
+                currency: 'NGN',
+                customer: { email: currentUser.email },
+                metadata: { user_id: currentUser.id, service_key: currentServiceKey },
+                onClose: function () {
+                    btn.disabled = false;
+                    btn.innerText = 'Pay with Korapay';
+                },
+                onSuccess: function () {
+                    verifyServicePaymentOnBackend(currentServiceKey, 'korapay', reference);
+                },
+                onFailed: function () {
+                    errEl.innerText = 'Payment failed or was not completed. Please try again.';
+                    errEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = 'Pay with Korapay';
+                }
+            });
+        }
+
         async function verifyServicePaymentOnBackend(serviceKey, method, reference) {
             const errEl = document.getElementById('svc-modal-error');
             const succEl = document.getElementById('svc-modal-success');
-            const btn = document.getElementById('svc-pay-paystack-btn');
+            const btn = method === 'korapay'
+                ? document.getElementById('svc-pay-korapay-btn')
+                : document.getElementById('svc-pay-paystack-btn');
+            const btnDefaultLabel = method === 'korapay' ? 'Pay with Korapay' : 'Pay with Paystack';
 
             try {
                 const client = getSupabase();
@@ -1428,7 +1546,7 @@
                 errEl.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'Pay with Paystack';
+                btn.innerText = btnDefaultLabel;
             }
         }
 
