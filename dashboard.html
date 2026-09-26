@@ -1680,30 +1680,38 @@ function escapeHtml(str) {
         }
 
         function sendWelcomeMessageEmail() {
-            if (!messageModalTarget) return;
-            var errEl = document.getElementById('message-modal-error');
-            errEl.classList.add('hidden');
+    // 1. Check what data is actually here
+    console.log("Customer data:", messageModalTarget); 
 
-            if (!messageModalTarget.email) {
-                errEl.innerText = 'This customer has no email address on file.';
-                errEl.classList.remove('hidden');
-                return;
-            }
+    // 2. Prevent silent failures
+    if (!messageModalTarget) {
+        console.error("Error: messageModalTarget is undefined. The modal didn't load the customer data.");
+        return;
+    }
 
-            var text = document.getElementById('message-modal-text').value.trim();
-            if (!text) {
-                errEl.innerText = 'Message cannot be empty.';
-                errEl.classList.remove('hidden');
-                return;
-            }
+    var errEl = document.getElementById('message-modal-error');
+    errEl.classList.add('hidden');
 
-            var subject = 'Welcome to EasyConnect Group';
-            var mailtoUrl = 'mailto:' + encodeURIComponent(messageModalTarget.email) +
-                '?subject=' + encodeURIComponent(subject) +
-                '&body=' + encodeURIComponent(text);
+    if (!messageModalTarget.email) {
+        errEl.innerText = 'This customer has no email address on file.';
+        errEl.classList.remove('hidden');
+        return;
+    }
 
-            window.location.href = mailtoUrl;
-        }
+    var text = document.getElementById('message-modal-text').value.trim();
+    if (!text) {
+        errEl.innerText = 'Message cannot be empty.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    var subject = 'Welcome to EasyConnect Group';
+    var mailtoUrl = 'mailto:' + encodeURIComponent(messageModalTarget.email) +
+        '?subject=' + encodeURIComponent(subject) +
+        '&body=' + encodeURIComponent(text);
+
+    window.location.href = mailtoUrl;
+}
 
         function messageModalSendMoney() {
             if (!messageModalTarget) return;
