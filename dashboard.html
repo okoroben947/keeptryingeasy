@@ -1701,9 +1701,13 @@ function escapeHtml(str) {
 
     var subject = 'Welcome to EasyConnect Group';
     
-    // Use window.location.href instead of window.open to avoid pop-up blockers
-    var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + 
-        encodeURIComponent(messageModalTarget.email) + 
+    // Explicitly set the sender account to eazyconnect34@gmail.com using the 'authuser' or 'from' parameter
+    var senderEmail = 'eazyconnect34@gmail.com';
+    
+    var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
+        '&to=' + encodeURIComponent(messageModalTarget.email) + 
+        '&from=' + encodeURIComponent(senderEmail) +
+        '&authuser=' + encodeURIComponent(senderEmail) +
         '&su=' + encodeURIComponent(subject) + 
         '&body=' + encodeURIComponent(text);
 
