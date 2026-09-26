@@ -1680,15 +1680,9 @@ function escapeHtml(str) {
         }
 
         function sendWelcomeMessageEmail() {
-    // 1. Check what data is actually here
     console.log("Customer data:", messageModalTarget); 
 
-    // 2. Prevent silent failures
-    if (!messageModalTarget) {
-        console.error("Error: messageModalTarget is undefined. The modal didn't load the customer data.");
-        return;
-    }
-
+    if (!messageModalTarget) return;
     var errEl = document.getElementById('message-modal-error');
     errEl.classList.add('hidden');
 
@@ -1706,11 +1700,14 @@ function escapeHtml(str) {
     }
 
     var subject = 'Welcome to EasyConnect Group';
-    var mailtoUrl = 'mailto:' + encodeURIComponent(messageModalTarget.email) +
-        '?subject=' + encodeURIComponent(subject) +
+    
+    // Use window.location.href instead of window.open to avoid pop-up blockers
+    var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + 
+        encodeURIComponent(messageModalTarget.email) + 
+        '&su=' + encodeURIComponent(subject) + 
         '&body=' + encodeURIComponent(text);
 
-    window.location.href = mailtoUrl;
+    window.location.href = gmailUrl;
 }
 
         function messageModalSendMoney() {
